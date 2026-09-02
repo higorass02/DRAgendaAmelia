@@ -8,19 +8,10 @@
 
 ## 1. O que é este projeto
 
-Módulo full stack de **agendamento de consultas** para uma healthtech (cenário de
-processo seletivo). Permite cadastrar pacientes e profissionais de saúde, agendar
+Módulo full stack de **agendamento de consultas** para uma healthtech.
+Permite cadastrar pacientes e profissionais de saúde, agendar
 consultas e movimentar cada consulta pelos estados do seu ciclo de vida, com
 trilha de auditoria, regras de negócio de saúde e conformidade com a LGPD.
-
-O foco da avaliação **não** é quantidade de features — é **julgamento técnico** e
-**clareza na comunicação das decisões**. Documentação (README, ADRs, AI_USAGE)
-vale tanto quanto o código.
-
-### Restrição de nomenclatura (obrigatória)
-Não usar o nome da empresa do desafio em nomes de repositório, classes, funções ou
-identificadores. Nome de trabalho do repo: `healthtech-scheduling` (ou similar
-neutro). Inspiração visual é permitida; o nome, não.
 
 ---
 
@@ -48,8 +39,7 @@ Notas de decisão (viram ADR depois):
 - **RabbitMQ é mais que o mínimo** para o escopo (driver `database`/Redis
   bastaria). Justificar no ADR "Isolamento da notificação" pelo que ele
   entrega de verdade: durabilidade de mensagem, retry com backoff e
-  **dead-letter queue** para notificação que falha — respondendo à pergunta de
-  resiliência (seção 9 do desafio).
+  **dead-letter queue** para notificação que falha .
 
 ---
 
