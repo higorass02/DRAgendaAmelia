@@ -23,6 +23,19 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
+     * "role" fica fora do Fillable — sem isso, um User novo em memória (ex.:
+     * logo após um create()) fica com o atributo ausente até um reload do
+     * banco, porque o default da coluna só existe a nível de SQL. Sem este
+     * default aqui, checagens de autorização feitas no mesmo request em que
+     * o usuário foi criado veriam role null em vez de "staff".
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'role' => 'staff',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

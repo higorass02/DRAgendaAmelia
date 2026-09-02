@@ -254,8 +254,16 @@ README (pergunta de "volume 50x").
   com mapa de transições, `TransitionAppointmentStatus`, `ScheduleAppointment`
   (disponibilidade + conflito + lock), `CancelAppointment`,
   `RescheduleAppointment`. 58 testes passando.
-- **Fase 3 — API.** Rotas `/api/v1`, controllers finos, Form Requests, Resources,
-  Policies, rate limit aplicado, auth Sanctum.
+- **Fase 3 — API (concluída).** Rotas `/api/v1` (auth, patients, professionals,
+  appointments + 6 endpoints de transição), controllers finos, Form Requests,
+  API Resources (minimização de PII), Policies (staff-only, testado que role
+  patient toma 403), rate limit aplicado (`auth` no login, `writes` em
+  criar/confirmar consulta). Documentação **Swagger/OpenAPI** pública em
+  `/api/documentation` (`darkaonline/l5-swagger`) com auth Bearer declarada.
+  96 testes passando. Bug real achado e corrigido: cliente sem header
+  `Accept: application/json` recebia 500 em vez de 401 (`Authenticate`
+  tentava redirecionar pra uma rota `login` inexistente) — pego com teste de
+  regressão + smoke test manual contra o ambiente rodando, não só a suíte.
 - **Fase 4 — Notificação desacoplada.** Evento de domínio → job enfileirado no
   RabbitMQ → worker. Resiliência + DLQ.
 - **Fase 5 — Frontend.** Shell, auth, kanban, relatórios, tratamento de erro/UX.

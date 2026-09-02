@@ -37,6 +37,15 @@ repositório, com acesso a shell, Docker e ao sistema de arquivos local.
   (remover o lock, confirmar que o teste falha, restaurar) — prática de
   "testar o teste" pra não confiar cegamente numa suíte verde.
 
+- **Fase 3 — API:** também por TDD (RED confirmado antes de cada
+  controller/Policy existir). Adicionado Swagger/OpenAPI (`l5-swagger`) a
+  pedido — documentação pública, autenticação Bearer declarada no schema.
+  Um bug real foi encontrado só porque a verificação não parou nos testes
+  automatizados: um `curl` manual contra o ambiente rodando (não só
+  `getJson()`/`postJson()`, que mandam `Accept: application/json` e
+  mascaravam o problema) expôs que requisições sem esse header recebiam 500
+  em vez de 401. Corrigido e coberto com teste de regressão específico.
+
 *(Seções seguintes serão preenchidas conforme o projeto avança pelas fases.)*
 
 ## O que foi revisado manualmente

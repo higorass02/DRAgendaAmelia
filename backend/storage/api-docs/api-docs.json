@@ -1,0 +1,1000 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Healthtech Scheduling API",
+        "description": "Agendamento de consultas: pacientes, profissionais e ciclo de vida da consulta.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/api/v1",
+            "description": "Servidor atual"
+        }
+    ],
+    "paths": {
+        "/appointments": {
+            "get": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Lista consultas (filtrável por status, profissional, paciente e período)",
+                "operationId": "bb7eecafa9f5d72b005274a851db91ea",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "professional_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "patient_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de consultas"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Agenda uma nova consulta",
+                "operationId": "ad67700abe95e180abd8d79890eaa7b8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "patient_id",
+                                    "professional_id",
+                                    "start_at",
+                                    "end_at"
+                                ],
+                                "properties": {
+                                    "patient_id": {
+                                        "type": "integer"
+                                    },
+                                    "professional_id": {
+                                        "type": "integer"
+                                    },
+                                    "start_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "end_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Consulta agendada"
+                    },
+                    "422": {
+                        "description": "Validação ou fora da janela de disponibilidade"
+                    },
+                    "409": {
+                        "description": "Conflito de agenda"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/appointments/{appointment}": {
+            "get": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Detalhe de uma consulta",
+                "operationId": "32f042ec6438bcde1acd9a947431abce",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Consulta"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/appointments/{appointment}/confirm": {
+            "post": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Confirma uma consulta agendada",
+                "operationId": "41f4ca45b1a35422e429b819d525f56a",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Consulta confirmada"
+                    },
+                    "422": {
+                        "description": "Transição inválida"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/appointments/{appointment}/start": {
+            "post": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Inicia o atendimento (Confirmada -> Em Atendimento)",
+                "operationId": "235648592291e4da7ba03e7305114b9d",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Atendimento iniciado"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/appointments/{appointment}/complete": {
+            "post": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Conclui o atendimento",
+                "operationId": "777724cda30d12bb8c1f7d7a311cbc39",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Consulta concluída"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/appointments/{appointment}/no-show": {
+            "post": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Marca não comparecimento",
+                "operationId": "35a1172a9c7670ac97aa327fb37587d0",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Marcado como não comparecido"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/appointments/{appointment}/cancel": {
+            "post": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Cancela uma consulta",
+                "operationId": "251d27aea150f6bb973b12c8593d6b70",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Consulta cancelada"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/appointments/{appointment}/reschedule": {
+            "post": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Remarca uma consulta confirmada (cria uma nova vinculada)",
+                "operationId": "249625c670f640cd5d230ea1adfb9f65",
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "start_at",
+                                    "end_at"
+                                ],
+                                "properties": {
+                                    "start_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "end_at": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Nova consulta criada, original marcada como remarcada"
+                    },
+                    "422": {
+                        "description": "Transição inválida ou fora da disponibilidade"
+                    },
+                    "409": {
+                        "description": "Conflito no novo horário"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login",
+                "description": "Autentica com e-mail e senha e retorna um token Sanctum (bearer). Resposta idêntica para senha errada ou e-mail inexistente (anti-enumeração).",
+                "operationId": "985cd5203e2d0a820e113f2f4fdb2847",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "staff@dragenda.test"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Login bem-sucedido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Credenciais inválidas ou dados ausentes"
+                    },
+                    "429": {
+                        "description": "Muitas tentativas — aguarde e tente de novo"
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout",
+                "description": "Revoga o token atual.",
+                "operationId": "a05022a34eef599e04fb0a5254375b84",
+                "responses": {
+                    "204": {
+                        "description": "Token revogado"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/me": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Usuário autenticado",
+                "operationId": "e339e0e74860c0647fd1d41bbbbc13b2",
+                "responses": {
+                    "200": {
+                        "description": "Dados do usuário autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/User"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/patients": {
+            "get": {
+                "tags": [
+                    "Patients"
+                ],
+                "summary": "Lista pacientes",
+                "operationId": "25da496d74a0ef65407930b3a958b687",
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de pacientes"
+                    },
+                    "401": {
+                        "description": "Não autenticado"
+                    },
+                    "403": {
+                        "description": "Sem permissão (só staff)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Patients"
+                ],
+                "summary": "Cadastra um paciente",
+                "operationId": "1c5763b2aa6fe7d167f31b0a017a4ee6",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "cpf",
+                                    "phone",
+                                    "birth_date"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Maria Silva"
+                                    },
+                                    "cpf": {
+                                        "type": "string",
+                                        "example": "111.444.777-35"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "11999998888"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "example": "maria@example.com",
+                                        "nullable": true
+                                    },
+                                    "birth_date": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "1990-05-10"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Paciente criado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/Patient"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Erro de validação (CPF inválido/duplicado, etc.)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/patients/{patient}": {
+            "get": {
+                "tags": [
+                    "Patients"
+                ],
+                "summary": "Detalhe de um paciente",
+                "operationId": "c11edbbc003c976c0403d7de42a041da",
+                "parameters": [
+                    {
+                        "name": "patient",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paciente"
+                    },
+                    "404": {
+                        "description": "Não encontrado"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Patients"
+                ],
+                "summary": "Atualiza um paciente",
+                "operationId": "5a4810febcaedc2b35e3594d2b71c457",
+                "parameters": [
+                    {
+                        "name": "patient",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paciente atualizado"
+                    },
+                    "422": {
+                        "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/professionals": {
+            "get": {
+                "tags": [
+                    "Professionals"
+                ],
+                "summary": "Lista profissionais",
+                "operationId": "81bad49e55435925bc09a395da98311f",
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de profissionais"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Professionals"
+                ],
+                "summary": "Cadastra um profissional com a janela de disponibilidade",
+                "operationId": "d0a279eaafb72dedad02526abc07baa1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "specialty",
+                                    "availabilities"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Dr. João"
+                                    },
+                                    "specialty": {
+                                        "type": "string",
+                                        "example": "Cardiologia"
+                                    },
+                                    "availabilities": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "weekday": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "start_time": {
+                                                    "type": "string",
+                                                    "example": "08:00"
+                                                },
+                                                "end_time": {
+                                                    "type": "string",
+                                                    "example": "18:00"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Profissional criado"
+                    },
+                    "422": {
+                        "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/professionals/{professional}": {
+            "get": {
+                "tags": [
+                    "Professionals"
+                ],
+                "summary": "Detalhe de um profissional",
+                "operationId": "409ed0f209e762114805ce95a321d395",
+                "parameters": [
+                    {
+                        "name": "professional",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profissional"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Professionals"
+                ],
+                "summary": "Atualiza um profissional (substitui a janela de disponibilidade)",
+                "operationId": "4e9409c72f440e018a3fb69d6ded2232",
+                "parameters": [
+                    {
+                        "name": "professional",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profissional atualizado"
+                    },
+                    "422": {
+                        "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Appointment": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "patient": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "professional": {
+                        "properties": {
+                            "id": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "specialty": {
+                                "type": "string"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "start_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "end_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "properties": {
+                            "value": {
+                                "type": "string",
+                                "example": "scheduled"
+                            },
+                            "label": {
+                                "type": "string",
+                                "example": "Agendada"
+                            }
+                        },
+                        "type": "object"
+                    },
+                    "rescheduled_from_id": {
+                        "type": "integer",
+                        "nullable": true
+                    },
+                    "rescheduled_to_id": {
+                        "type": "integer",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "Patient": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Maria Silva"
+                    },
+                    "cpf": {
+                        "type": "string",
+                        "example": "11144477735"
+                    },
+                    "phone": {
+                        "type": "string",
+                        "example": "11999998888"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "maria@example.com",
+                        "nullable": true
+                    },
+                    "birth_date": {
+                        "type": "string",
+                        "format": "date",
+                        "example": "1990-05-10"
+                    }
+                },
+                "type": "object"
+            },
+            "ProfessionalAvailability": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "weekday": {
+                        "description": "0=domingo ... 6=sábado",
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "example": "08:00"
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "example": "18:00"
+                    }
+                },
+                "type": "object"
+            },
+            "Professional": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Dr. João"
+                    },
+                    "specialty": {
+                        "type": "string",
+                        "example": "Cardiologia"
+                    },
+                    "availabilities": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProfessionalAvailability"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "User": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Recepção Central"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "staff@dragenda.test"
+                    },
+                    "role": {
+                        "type": "string",
+                        "example": "staff",
+                        "enum": [
+                            "staff",
+                            "patient"
+                        ]
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Token obtido em POST /auth/login. Enviar como \"Authorization: Bearer {token}\".",
+                "bearerFormat": "Sanctum token",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Autenticação (Sanctum)"
+        },
+        {
+            "name": "Patients",
+            "description": "Pacientes"
+        },
+        {
+            "name": "Professionals",
+            "description": "Profissionais de saúde"
+        },
+        {
+            "name": "Appointments",
+            "description": "Consultas e ciclo de vida"
+        }
+    ]
+}
