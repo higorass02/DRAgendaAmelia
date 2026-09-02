@@ -100,24 +100,42 @@ suficiente" — e discutida no README, não perseguida como prioridade nº 1.
 
 ---
 
-## 6. Domínio (conceitual — schema detalhado é Fase 2)
+## 6. Domínio (Fase 1 — schema fechado, ver migrations em `backend/database/migrations`)
 
-Não gerar migrations/models nesta fase. Isto é o mapa conceitual para alinhar
-depois em conversa. Pontos marcados com ⚠️ são decisões de modelagem em aberto.
+### Decisão: quem se autentica (Fase 1)
+- **Usuário primário (`users`, Sanctum):** operador/staff da clínica —
+  recepção/admin. É quem usa o kanban e dispara as transições de status.
+  Coluna `users.role` (`staff` | `patient`), default `staff`.
+- **Professional:** entidade de domínio gerenciada, **sem login próprio**.
+- **Patient:** entidade de domínio gerenciada; suporta login **opcional** de
+  self-service enxuto (ver/cancelar as próprias consultas) via
+  `patients.user_id` (nullable, FK única para `users`). A implementação do
+  fluxo de self-service em si é escopo condicional (Fase 3/5, conforme
+  tempo) — o hook de schema já existe desde a Fase 1.
+- Suposição assumida porque o desafio não define o público-alvo da
+  interface; documentar essa leitura no README (transições descritas são
+  majoritariamente ações de clínica).
 
 ### Entidades
-- **Patient:** name, cpf, phone, email, birth_date.
-- **Professional:** name, specialty, janela de disponibilidade (dias + horários).
-  - ⚠️ Modelar disponibilidade como tabela própria (`weekday`, `start_time`,
-    `end_time`) em vez de JSON — mais consultável. Decidir na Fase 1.
-- **Appointment:** patient_id, professional_id, início da consulta, status atual.
-  - ⚠️ Guardar `start_at` + `end_at` (ou `start_at` + `duration`) — precisamos
-    de intervalo, não só "data e hora", para detectar sobreposição. Decidir na
-    Fase 1. Isto amarra direto na estratégia de conflito de agenda.
+- **Patient:** name, cpf (único, normalizado sem máscara), phone, email,
+  birth_date, user_id (nullable, self-service opcional).
+- **Professional:** name, specialty. Sem contato/login — não autentica.
+- **ProfessionalAvailability:** tabela própria — professional_id, weekday
+  (0=domingo…6=sábado, convenção `Carbon::dayOfWeek`), start_time, end_time.
+  Decidido na Fase 1: mais consultável que JSON.
+- **Appointment:** patient_id, professional_id, `start_at` + `end_at`
+  (decidido na Fase 1 — intervalo explícito, duração variável por consulta),
+  status atual, created_by (users.id).
   - Linhagem de remarcação: `rescheduled_from_id` / `rescheduled_to_id`.
-  - Cancelamento: motivo + capacidade de distinguir antecedência.
-- **StatusHistory:** appointment_id, from_status, to_status, reason, changed_by,
-  changed_at. É a trilha de auditoria (seção 4.4).
+  - Cancelamento (motivo, quando, antecedência): **não** duplicado em
+    Appointment — vive em StatusHistory (fonte única de verdade da
+    transição CANCELLED), evita dado redundante.
+  - Índice único anti-overbooking fica para a Fase 2 (junto da estratégia de
+    lock/concorrência) — Fase 1 só cria índice normal (professional_id,
+    start_at) para performance de consulta.
+- **StatusHistory:** appointment_id, from_status (nullable — primeira
+  transição não tem "de"), to_status, reason, changed_by, changed_at. É a
+  trilha de auditoria (seção 4.4) — imutável, sem `updated_at`.
 
 ### Máquina de estados (transições travadas pelo desafio)
 ```
@@ -184,13 +202,14 @@ remarcação, minimização/autorização nas respostas da API.
 
 ## 9. Área de relatórios (read-model sobre o domínio)
 
-Relatórios reaproveitam auditoria + regras já existentes. Implementar 2–3 de
-fato; o resto fica citado como roadmap. Candidatos (a confirmar na Fase 1):
+Relatórios reaproveitam auditoria + regras já existentes. Decidido na Fase 1
+— entram no escopo real (implementação em Fase 3/9):
 - Taxa de **no-show**.
 - **Cancelamentos por antecedência** (< X h vs. demais).
 - Taxa de **remarcação**.
 - **Ocupação** por profissional.
-- Volume por período/status.
+
+Fora do escopo, fica só citado como roadmap: volume por período/status.
 
 Gancho de escala: relatório é agregação → discutir índices, query e cache no
 README (pergunta de "volume 50x").
@@ -213,14 +232,12 @@ README (pergunta de "volume 50x").
 
 ## 11. Plano em fases
 
-- **Fase 0 — Ambiente e esqueleto (ATUAL).** Docker Compose completo, Laravel 13
+- **Fase 0 — Ambiente e esqueleto (concluída).** Docker Compose completo, Laravel 13
   instalado e configurado (MySQL, Sanctum, driver RabbitMQ), Vue 3 + Vite +
   Tailwind + shadcn-vue, defaults seguros (CORS allowlist, headers, config de
   rate limiter), rota de health check ponta a ponta, stubs de README/AI_USAGE/ADR.
-  **Não** criar migrations/models de domínio ainda.
-- **Fase 1 — Modelagem de domínio.** Fechar ⚠️ (intervalo da consulta,
-  disponibilidade, relatórios) em conversa. Depois: schema + migrations + models
-  + factories + seeders.
+- **Fase 1 — Modelagem de domínio (ATUAL).** Decisões fechadas em conversa
+  (seção 6). Schema + migrations + models + factories + seeders.
 - **Fase 2 — Máquina de estados + regras de negócio.** Enum, mapa de transições,
   `transitionTo()`, histórico, conflito sob concorrência, janela, cancelamento,
   remarcação.

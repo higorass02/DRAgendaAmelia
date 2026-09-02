@@ -18,6 +18,15 @@ repositório, com acesso a shell, Docker e ao sistema de arquivos local.
   nomeados); verificação ponta a ponta (health checks, publish/consume real
   no RabbitMQ, build de produção do frontend).
 
+- **Fase 1 — Modelagem de domínio:** as decisões de modelagem em aberto
+  (disponibilidade do profissional, intervalo da consulta, quem se
+  autentica, quais relatórios entram no escopo) foram discutidas e decididas
+  em conversa **antes** de qualquer geração de schema — por instrução
+  explícita do `CLAUDE.md`, a IA não modela domínio sozinha. Depois disso:
+  migrations, models, enums (`AppointmentStatus`, `UserRole`), factories e
+  seeder gerados e verificados (constraints testadas de verdade — CPF único,
+  linhagem de remarcação — não só sintaticamente).
+
 *(Seções seguintes serão preenchidas conforme o projeto avança pelas fases.)*
 
 ## O que foi revisado manualmente
