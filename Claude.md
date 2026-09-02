@@ -150,17 +150,27 @@ NO_SHOW      (Não Compareceu)  -> [terminal]
 Estados terminais **não** voltam. Toda transição válida grava StatusHistory
 dentro de uma transação.
 
-### Regras de negócio (todas precisam estar pensadas; nem todas 100% implementadas)
-- **Conflito de agenda sob concorrência:** um profissional não pode ter duas
-  consultas confirmadas sobrepostas. Estratégia (MySQL): transação +
-  `SELECT ... FOR UPDATE` + índice único como rede final. Detalhar em ADR.
-- **Janela de disponibilidade:** consulta só dentro do horário do profissional.
-- **Cancelamento com antecedência:** distinguir cancelamento com < X horas
-  (definir e justificar X; sugestão inicial: 24h) dos demais. Sem cobrança de
-  multa — só a distinção precisa existir.
-- **Reagendamento preserva histórico:** remarcar não apaga o registro original;
-  rastreabilidade antiga ↔ nova.
-- **Dado sensível (LGPD):** controle de acesso + minimização na API.
+### Regras de negócio (Fase 2 — implementadas e testadas via TDD/PHPUnit)
+- **Conflito de agenda sob concorrência:** decidido na Fase 2 — status que
+  "ocupam" a agenda são **SCHEDULED + CONFIRMED** (não só CONFIRMED; evita
+  duas recepções marcando o mesmo horário até a confirmação). Implementado:
+  transação + `SELECT ... FOR UPDATE` (gap lock do InnoDB no intervalo) +
+  índice único `(professional_id, occupied_start_at)` como rede final —
+  coluna gerada (`STORED`, NULL quando o status não ocupa agenda) porque
+  MySQL não tem índice único condicional. Testado com concorrência real
+  (dois processos disputando o mesmo slot — não só teste sequencial).
+- **Janela de disponibilidade:** consulta só dentro do horário do
+  profissional (`ProfessionalAvailability`), checada antes da transação.
+- **Cancelamento com antecedência:** threshold fixado em **24h**
+  (`App\Support\CancellationNotice`). Não persistido como coluna — calculado
+  a partir de `StatusHistory.changed_at` vs `Appointment.start_at`, usado
+  depois nos relatórios (Fase 9). Sem cobrança de multa, só a distinção.
+- **Reagendamento preserva histórico:** `RescheduleAppointment` cria nova
+  Appointment vinculada (`rescheduled_from_id`/`rescheduled_to_id`) e só
+  transiciona a original para RESCHEDULED depois que a nova consulta passou
+  pela mesma validação de disponibilidade/conflito — tudo atômico. A máquina
+  de estados só permite RESCHEDULED a partir de CONFIRMED (não de SCHEDULED).
+- **Dado sensível (LGPD):** controle de acesso + minimização na API — Fase 3.
 
 ---
 
@@ -236,11 +246,14 @@ README (pergunta de "volume 50x").
   instalado e configurado (MySQL, Sanctum, driver RabbitMQ), Vue 3 + Vite +
   Tailwind + shadcn-vue, defaults seguros (CORS allowlist, headers, config de
   rate limiter), rota de health check ponta a ponta, stubs de README/AI_USAGE/ADR.
-- **Fase 1 — Modelagem de domínio (ATUAL).** Decisões fechadas em conversa
+- **Fase 1 — Modelagem de domínio (concluída).** Decisões fechadas em conversa
   (seção 6). Schema + migrations + models + factories + seeders.
-- **Fase 2 — Máquina de estados + regras de negócio.** Enum, mapa de transições,
-  `transitionTo()`, histórico, conflito sob concorrência, janela, cancelamento,
-  remarcação.
+- **Fase 2 — Máquina de estados + regras de negócio (concluída).** TDD com
+  PHPUnit contra MySQL de verdade (banco `dragenda_testing` dedicado — não
+  SQLite, o teste de concorrência depende de locking real do InnoDB). Enum
+  com mapa de transições, `TransitionAppointmentStatus`, `ScheduleAppointment`
+  (disponibilidade + conflito + lock), `CancelAppointment`,
+  `RescheduleAppointment`. 58 testes passando.
 - **Fase 3 — API.** Rotas `/api/v1`, controllers finos, Form Requests, Resources,
   Policies, rate limit aplicado, auth Sanctum.
 - **Fase 4 — Notificação desacoplada.** Evento de domínio → job enfileirado no

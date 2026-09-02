@@ -32,4 +32,24 @@ enum AppointmentStatus: string
             default => false,
         };
     }
+
+    /**
+     * Mapa de transições travado pelo desafio (CLAUDE.md, seção 6).
+     *
+     * @return array<int, self>
+     */
+    public function allowedTransitions(): array
+    {
+        return match ($this) {
+            self::Scheduled => [self::Confirmed, self::Cancelled],
+            self::Confirmed => [self::InProgress, self::Rescheduled, self::Cancelled, self::NoShow],
+            self::InProgress => [self::Completed],
+            self::Completed, self::Rescheduled, self::Cancelled, self::NoShow => [],
+        };
+    }
+
+    public function canTransitionTo(self $target): bool
+    {
+        return in_array($target, $this->allowedTransitions(), strict: true);
+    }
 }

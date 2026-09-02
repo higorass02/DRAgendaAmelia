@@ -27,6 +27,16 @@ repositório, com acesso a shell, Docker e ao sistema de arquivos local.
   seeder gerados e verificados (constraints testadas de verdade — CPF único,
   linhagem de remarcação — não só sintaticamente).
 
+- **Fase 2 — Máquina de estados + regras de negócio:** desenvolvimento
+  conduzido por TDD com PHPUnit — cada regra teve teste escrito e rodado
+  **RED** (falhando) antes de qualquer código de implementação, depois
+  **GREEN**. Ambiente de teste rodando contra MySQL real (banco dedicado
+  `dragenda_testing`), não SQLite, porque o teste de conflito de agenda sob
+  concorrência depende de locking real do InnoDB (`SELECT ... FOR UPDATE`).
+  O teste de concorrência em si foi verificado com uma mutação deliberada
+  (remover o lock, confirmar que o teste falha, restaurar) — prática de
+  "testar o teste" pra não confiar cegamente numa suíte verde.
+
 *(Seções seguintes serão preenchidas conforme o projeto avança pelas fases.)*
 
 ## O que foi revisado manualmente
