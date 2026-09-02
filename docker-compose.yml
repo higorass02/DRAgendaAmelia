@@ -114,7 +114,7 @@ services:
       dockerfile: ../docker/frontend/Dockerfile
     container_name: dragenda_frontend
     restart: unless-stopped
-    command: npm run dev -- --host 0.0.0.0
+    command: yarn watch
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
