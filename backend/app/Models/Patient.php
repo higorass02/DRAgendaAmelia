@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'cpf', 'phone', 'email', 'birth_date', 'user_id'])]
 class Patient extends Model
 {
     /** @use HasFactory<\Database\Factories\PatientFactory> */
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected function casts(): array
     {

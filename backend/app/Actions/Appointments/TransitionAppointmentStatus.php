@@ -3,6 +3,7 @@
 namespace App\Actions\Appointments;
 
 use App\Enums\AppointmentStatus;
+use App\Events\AppointmentStatusChanged;
 use App\Exceptions\InvalidStatusTransitionException;
 use App\Models\Appointment;
 use App\Models\StatusHistory;
@@ -35,7 +36,11 @@ class TransitionAppointmentStatus
                 'changed_at' => now(),
             ]);
 
-            return $appointment->fresh();
+            $updated = $appointment->fresh();
+
+            AppointmentStatusChanged::dispatch($updated, $from);
+
+            return $updated;
         });
     }
 }

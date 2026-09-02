@@ -46,6 +46,18 @@ repositório, com acesso a shell, Docker e ao sistema de arquivos local.
   mascaravam o problema) expôs que requisições sem esse header recebiam 500
   em vez de 401. Corrigido e coberto com teste de regressão específico.
 
+- **Fase 4 — Notificação desacoplada:** também TDD. Durante a implementação,
+  um bug real (listener com `$connection` do RabbitMQ fixada na classe,
+  ignorando o `QUEUE_CONNECTION=sync` configurado para os testes) vazou jobs
+  reais para o broker de desenvolvimento, referenciando dados que só
+  existiam no banco de teste — o worker de dev falhava de verdade ao
+  processá-los. Em vez de só corrigir e seguir, a investigação virou
+  evidência real de que a estratégia de retry+DLQ funciona: as mensagens
+  passaram pelas 3 tentativas com backoff e caíram na fila
+  `notifications.failed`, com os headers nativos do RabbitMQ (`x-death`)
+  confirmando a jornada completa. Documentado no ADR 0001. Fila purgada
+  depois de capturar a evidência — não ficou lixo de debug no ambiente.
+
 *(Seções seguintes serão preenchidas conforme o projeto avança pelas fases.)*
 
 ## O que foi revisado manualmente

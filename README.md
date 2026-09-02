@@ -32,6 +32,7 @@ e frontend (Vite dev server). Tudo fica disponível em um único host:
 |------------------------|-------------------------------|
 | Aplicação (frontend)   | http://localhost              |
 | API                    | http://localhost/api/v1       |
+| Documentação da API (Swagger) | http://localhost/api/documentation |
 | Health check           | http://localhost/api/v1/health, http://localhost/up |
 | phpMyAdmin             | http://localhost:8080         |
 | RabbitMQ management    | http://localhost:15672        |
@@ -46,7 +47,12 @@ docker compose logs -f api        # logs do backend
 docker compose logs -f worker     # logs do worker de fila
 docker compose exec api php artisan migrate
 docker compose exec frontend yarn watch   # já é o comando padrão do container
+docker compose exec api php artisan rabbitmq:provision  # declara a fila notifications.failed (DLQ) — já roda automaticamente no boot do worker
 ```
+
+Notificações (agendamento, confirmação, cancelamento) são assíncronas via
+RabbitMQ (fila `notifications`), com retry e dead-letter queue — ver
+[ADR 0001](./docs/adr/0001-isolamento-da-notificacao.md).
 
 ## Decisões de arquitetura
 

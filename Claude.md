@@ -264,8 +264,18 @@ README (pergunta de "volume 50x").
   `Accept: application/json` recebia 500 em vez de 401 (`Authenticate`
   tentava redirecionar pra uma rota `login` inexistente) — pego com teste de
   regressão + smoke test manual contra o ambiente rodando, não só a suíte.
-- **Fase 4 — Notificação desacoplada.** Evento de domínio → job enfileirado no
-  RabbitMQ → worker. Resiliência + DLQ.
+- **Fase 4 — Notificação desacoplada (concluída).** Eventos `AppointmentScheduled`
+  / `AppointmentStatusChanged` → listener `ShouldQueue` (fila `notifications`,
+  `afterCommit=true`) → RabbitMQ → worker (`--tries=3 --backoff=5`) →
+  `Notification::toMail()` (driver `log`). DLQ real via `reroute_failed` do
+  pacote + fila `notifications.failed` auto-provisionada no boot do worker
+  (`rabbitmq:provision`, idempotente). ADR 0001 registrado
+  (`docs/adr/0001-isolamento-da-notificacao.md`). 105 testes passando. Bug
+  real achado e corrigido: listener fixava `$connection='rabbitmq'` na
+  classe, ignorando `QUEUE_CONNECTION=sync` dos testes — vazou jobs reais pro
+  broker referenciando dados só do banco de teste. Isso virou, sem querer,
+  prova real de que retry+DLQ funcionam (headers `x-death` do RabbitMQ
+  confirmando a jornada) — documentado no ADR.
 - **Fase 5 — Frontend.** Shell, auth, kanban, relatórios, tratamento de erro/UX.
 - **Fase 6 — Testes + docs + vídeo.** Cobertura crítica, 3 ADRs, README completo,
   AI_USAGE, GIF/vídeo.

@@ -3,6 +3,7 @@
 namespace App\Actions\Appointments;
 
 use App\Enums\AppointmentStatus;
+use App\Events\AppointmentScheduled;
 use App\Exceptions\OutsideAvailabilityException;
 use App\Exceptions\ScheduleConflictException;
 use App\Models\Appointment;
@@ -54,6 +55,8 @@ class ScheduleAppointment
                 'changed_by' => $actor->id,
                 'changed_at' => now(),
             ]);
+
+            AppointmentScheduled::dispatch($appointment);
 
             return $appointment;
         });

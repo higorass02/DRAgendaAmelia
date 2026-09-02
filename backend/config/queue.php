@@ -88,7 +88,19 @@ return [
                 ],
             ],
 
-            'options' => [],
+            'options' => [
+                'queue' => [
+                    // Resiliência (Fase 4 / ADR "Isolamento da notificação"):
+                    // depois que o worker esgota --tries, o pacote rejeita a
+                    // mensagem (basic_reject, sem requeue) — com isso ligado,
+                    // o RabbitMQ desvia pra fila "{fila}.failed" em vez de
+                    // descartar. A fila notifications.failed é declarada via
+                    // docker/rabbitmq/definitions.json.
+                    'reroute_failed' => true,
+                    'failed_exchange' => '',
+                    'failed_routing_key' => '%s.failed',
+                ],
+            ],
 
             'worker' => env('RABBITMQ_WORKER', 'default'),
         ],

@@ -98,7 +98,7 @@ services:
         WWWGROUP: ${WWWGROUP:-1000}
     container_name: dragenda_worker
     restart: unless-stopped
-    command: php artisan queue:work rabbitmq --tries=3 --backoff=5 --max-time=3600
+    command: sh -c "php artisan rabbitmq:provision && php artisan queue:work rabbitmq --queue=notifications --tries=3 --backoff=5 --max-time=3600"
     volumes:
       - ./backend:/var/www/html
     depends_on:
