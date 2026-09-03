@@ -6,13 +6,15 @@ import App from './App.vue'
 import router from './router'
 import { setUnauthorizedHandler } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
-import { digitsOnly } from '@/directives/digitsOnly'
+import { phoneMask } from '@/directives/phoneMask'
+import { cpfMask } from '@/directives/cpfMask'
 
 const app = createApp(App)
 
 app.use(createPinia())
 app.use(router)
-app.directive('digits-only', digitsOnly)
+app.directive('phone-mask', phoneMask)
+app.directive('cpf-mask', cpfMask)
 
 const auth = useAuthStore()
 setUnauthorizedHandler(() => {

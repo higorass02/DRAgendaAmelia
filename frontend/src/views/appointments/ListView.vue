@@ -11,6 +11,7 @@ import AppointmentDetailDialog from '@/components/appointments/AppointmentDetail
 import Pagination from '@/components/shared/Pagination.vue'
 import FilterDrawer from '@/components/shared/FilterDrawer.vue'
 import SortableTableHead from '@/components/shared/SortableTableHead.vue'
+import DateInputBR from '@/components/shared/DateInputBR.vue'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -152,11 +153,11 @@ onMounted(load)
         </div>
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs text-muted-foreground">De</Label>
-          <Input v-model="filters.from" type="date" />
+          <DateInputBR v-model="filters.from" />
         </div>
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs text-muted-foreground">Até</Label>
-          <Input v-model="filters.to" type="date" />
+          <DateInputBR v-model="filters.to" />
         </div>
       </FilterDrawer>
     </div>

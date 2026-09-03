@@ -50,6 +50,12 @@ const router = createRouter({
       component: () => import('@/views/users/UsersView.vue'),
       meta: { adminOnly: true },
     },
+    {
+      path: '/audit-logs',
+      name: 'audit-logs',
+      component: () => import('@/views/audit/AuditLogsView.vue'),
+      meta: { adminOnly: true },
+    },
   ],
 })
 

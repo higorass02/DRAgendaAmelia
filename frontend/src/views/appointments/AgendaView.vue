@@ -4,13 +4,14 @@ import api from '@/lib/api'
 import AppointmentsNav from '@/components/appointments/AppointmentsNav.vue'
 import StatusBadge from '@/components/appointments/StatusBadge.vue'
 import ScheduleAppointmentDialog from '@/components/appointments/ScheduleAppointmentDialog.vue'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import DateInputBR from '@/components/shared/DateInputBR.vue'
+import { formatLocalDate } from '@/lib/datetime'
 
 const appointments = ref([])
 const loading = ref(true)
 const scheduleOpen = ref(false)
-const date = ref(new Date().toISOString().slice(0, 10))
+const date = ref(formatLocalDate(new Date()))
 
 async function load() {
   loading.value = true
@@ -51,7 +52,7 @@ onMounted(load)
     <div class="flex items-end gap-2">
       <div class="flex flex-col gap-1.5">
         <Label for="agenda_date">Dia</Label>
-        <Input id="agenda_date" v-model="date" type="date" class="w-48" />
+        <DateInputBR v-model="date" class="w-48" />
       </div>
     </div>
 

@@ -97,6 +97,21 @@ repositório, com acesso a shell, Docker e ao sistema de arquivos local.
   produção limpo + smoke test real via curl contra a API rodando + revisão
   de código — não por navegação real.
 
+- **Pós-Fase 5, rodada 3 (a pedido):** trilha de auditoria (quem fez o quê,
+  quando — pacientes, profissionais, consultas, usuários, login/logout),
+  visível numa tela dedicada só pra admin. Endpoint de horários livres por
+  profissional, consumido pelos modais de agendar/remarcar (agora um select
+  de horários realmente disponíveis, não mais um campo de hora livre).
+  Incidente real capturado e corrigido: uma migration nova não tinha sido
+  aplicada no banco de desenvolvimento (só no de teste), e o próximo request
+  real expôs a mensagem crua de uma exceção SQL na tela — não só rodei a
+  migration pendente, como adicionei uma rede de segurança permanente no
+  tratamento de exceções da API (`bootstrap/app.php`): qualquer exceção não
+  mapeada explicitamente vira uma mensagem genérica pro cliente,
+  independente de `APP_DEBUG`, com o erro real indo só pro log do servidor.
+  Isso é o tipo de coisa que só aparece em uso real — a suíte de testes não
+  ia pegar um banco de dev desatualizado. 175 testes de backend passando.
+
 *(Seções seguintes serão preenchidas conforme o projeto avança pelas fases.)*
 
 ## O que foi revisado manualmente

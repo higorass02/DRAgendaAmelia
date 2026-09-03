@@ -343,6 +343,61 @@ README (pergunta de "volume 50x").
   filtros foram verificados por build de produção limpo + smoke test real via
   curl contra a API + revisão de código, não por interação visual real.
   154 testes de backend passando.
+- **Pós-Fase 5, rodada 3 (a pedido):** trilha de auditoria (`AuditLog`,
+  admin-only) cobrindo CRUD de pacientes/profissionais (via observer
+  genérico — eles não têm camada de Actions própria), ciclo de vida completo
+  de consultas (logado direto em `ScheduleAppointment`/
+  `TransitionAppointmentStatus` — como `CancelAppointment` e
+  `RescheduleAppointment` já delegam pra esses dois, cobertura veio de graça),
+  login/logout, e CRUD de usuários pelo admin. Endpoint de horários livres
+  (`GET /professionals/{id}/available-slots`) — calcula slots a partir da
+  disponibilidade configurada menos consultas já ocupando aquele horário
+  (mesmo critério de conflito do `ScheduleAppointment`); os modais de
+  agendar/remarcar trocaram o campo de hora livre por um `<select>` só com
+  esses horários, então não dá mais pra digitar um horário fora da janela do
+  profissional ou em cima de outra consulta. **Correção de segurança
+  encontrada em uso real, não em revisão de código:** uma migration nova
+  (audit_logs) tinha rodado no banco de teste mas não no banco de
+  desenvolvimento — o próximo request real bateu num erro de SQL, e a
+  mensagem crua da exceção (nome de tabela, host do banco) foi parar direto
+  na tela do usuário via `e.response.data.message`. Raiz do problema:
+  `APP_DEBUG=true` (intencional em dev, pra log local) fazia o handler padrão
+  do Laravel devolver a exceção completa no JSON de erro. Corrigido na
+  camada certa — não só rodando a migration pendente, mas um renderer
+  genérico em `bootstrap/app.php` que sempre devolve uma mensagem genérica
+  pra qualquer exceção não mapeada (SQL, TypeError, etc.), independente de
+  `APP_DEBUG`, com o erro de verdade indo só pro log (`report($e)`); 404/401/
+  403/422/429 e as 3 exceptions de domínio continuam com o tratamento
+  específico de sempre. Teste de regressão registra uma rota que
+  deliberadamente lança uma exceção com "SQLSTATE" na mensagem e confirma que
+  a resposta JSON nunca contém esse texto. 175 testes de backend passando.
+  Também criado `setup.sh` (raiz do repo) — sobe o ambiente inteiro do zero
+  de forma automática e idempotente (gera `.env`/`backend/.env` se
+  faltarem, `composer install`/`npm install`, migrations, seed só se o banco
+  estiver vazio, health check no final) e avisa explicitamente sobre
+  qualquer senha `change_me` deixada pra trás. `backend/.env.example`
+  também foi corrigido — antes era o template padrão do Laravel (SQLite,
+  hosts localhost), incompatível com o docker-compose deste projeto.
+- **Pós-Fase 5, rodada 4 (a pedido):** achada a causa raiz de verdade do
+  toast "feio"/no lugar errado que vinha sendo reportado desde a rodada 3 —
+  o CSS do `vue-sonner` (`vue-sonner/style.css`) nunca tinha sido importado
+  em lugar nenhum do projeto. Sem ele, o `<Toaster>` não tem `position:
+  fixed`, layout flex, z-index, nada — ele simplesmente nasce no fluxo
+  normal do documento, como um `<div>` qualquer no topo da página (por isso
+  "aparecia atrás" de um modal: não era stacking context, era o componente
+  empurrando o cabeçalho pra baixo). Todo o trabalho de cor/z-index das
+  rodadas anteriores era correto em teoria, só nunca teve efeito visual
+  porque a folha de estilo que consome essas variáveis não existia no bundle
+  — corrigido com uma linha (`@import "vue-sonner/style.css"` em
+  `main.css`), confirmado no bundle final (o CSS gerado cresceu de ~60KB pra
+  ~76KB e passou a conter os seletores `[data-sonner-toaster]`). Telefone
+  ganhou máscara de verdade `(XX) XXXXX-XXXX` (diretiva `v-phone-mask`,
+  reforçada com um truque de `@keyframes`/`animationstart` pra pegar
+  preenchimento automático do navegador, que nem sempre dispara evento
+  "input"); o valor ainda é normalizado pra só dígitos no backend antes de
+  salvar (mesma convenção já usada pro CPF), e o filtro de busca por
+  telefone também normaliza a query antes do `LIKE`. Filtro de CPF (que
+  ainda aceitava letra) ganhou a mesma restrição de dígitos.
 - **Fase 6 — Testes + docs + vídeo.** Cobertura crítica, 3 ADRs, README completo,
   AI_USAGE, GIF/vídeo.
 

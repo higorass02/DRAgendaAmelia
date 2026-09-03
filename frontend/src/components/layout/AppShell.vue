@@ -24,6 +24,7 @@ import {
   UserCircle,
   KeyRound,
   ShieldCheck,
+  ScrollText,
   Trash2,
   ChevronDown,
 } from '@lucide/vue'
@@ -42,7 +43,12 @@ const nav = computed(() => [
   { name: 'patients', label: 'Pacientes', icon: Users, match: 'patients' },
   { name: 'professionals', label: 'Profissionais', icon: Stethoscope, match: 'professionals' },
   { name: 'reports', label: 'Relatórios', icon: BarChart3, match: 'reports' },
-  ...(auth.isAdmin ? [{ name: 'users', label: 'Usuários', icon: ShieldCheck, match: 'users' }] : []),
+  ...(auth.isAdmin
+    ? [
+        { name: 'users', label: 'Usuários', icon: ShieldCheck, match: 'users' },
+        { name: 'audit-logs', label: 'Auditoria', icon: ScrollText, match: 'audit-logs' },
+      ]
+    : []),
 ])
 
 function isActive(item) {

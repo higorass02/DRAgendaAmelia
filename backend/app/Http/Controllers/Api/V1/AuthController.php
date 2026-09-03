@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Resources\UserResource;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,8 @@ class AuthController extends Controller
             return response()->json(['message' => 'Credenciais inválidas.'], 422);
         }
 
+        AuditLog::record(actor: $user, action: 'login', subjectType: 'user', subjectId: $user->id, subjectLabel: $user->name);
+
         return response()->json([
             'token' => $user->createToken('api')->plainTextToken,
             'user' => new UserResource($user),
@@ -69,7 +72,10 @@ class AuthController extends Controller
     )]
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+        $user->currentAccessToken()->delete();
+
+        AuditLog::record(actor: $user, action: 'logout', subjectType: 'user', subjectId: $user->id, subjectLabel: $user->name);
 
         return response()->json(null, 204);
     }

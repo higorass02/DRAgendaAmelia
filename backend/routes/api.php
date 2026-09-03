@@ -43,6 +43,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::apiResource('patients', PatientController::class)->except(['destroy']);
     Route::apiResource('professionals', ProfessionalController::class)->except(['destroy']);
+    Route::get('professionals/{professional}/available-slots', [ProfessionalController::class, 'availableSlots']);
 
     Route::apiResource('appointments', AppointmentController::class)->only(['index', 'show']);
     Route::post('appointments/{appointment}/start', [AppointmentController::class, 'start']);

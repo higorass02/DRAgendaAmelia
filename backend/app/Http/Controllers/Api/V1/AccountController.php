@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Requests\Account\ChangePasswordRequest;
 use App\Http\Requests\Account\DeleteAccountRequest;
 use App\Http\Resources\UserResource;
+use App\Models\AuditLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use OpenApi\Attributes as OA;
@@ -43,6 +44,14 @@ class AccountController extends Controller
         $user = $request->user();
         $user->update(['password' => Hash::make($request->validated('password'))]);
 
+        AuditLog::record(
+            actor: $user,
+            action: 'password_changed',
+            subjectType: 'user',
+            subjectId: $user->id,
+            subjectLabel: $user->name,
+        );
+
         return new UserResource($user);
     }
 
@@ -66,6 +75,15 @@ class AccountController extends Controller
     public function destroy(DeleteAccountRequest $request): JsonResponse
     {
         $user = $request->user();
+
+        AuditLog::record(
+            actor: $user,
+            action: 'account_deleted',
+            subjectType: 'user',
+            subjectId: $user->id,
+            subjectLabel: $user->name,
+        );
+
         $user->tokens()->delete();
         $user->delete();
 

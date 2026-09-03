@@ -108,6 +108,15 @@ class UserManagementTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('data.role', 'admin');
+
+        $log = \App\Models\AuditLog::query()
+            ->where('subject_type', 'user')
+            ->where('subject_id', $user->id)
+            ->where('action', 'updated')
+            ->firstOrFail();
+        // assertEquals (não assertSame): o MySQL JSON não garante preservar a
+        // ordem das chaves no round-trip — os valores é que importam aqui.
+        $this->assertEquals(['from' => 'staff', 'to' => 'admin'], $log->changes['role']);
     }
 
     public function test_admin_can_delete_another_user(): void

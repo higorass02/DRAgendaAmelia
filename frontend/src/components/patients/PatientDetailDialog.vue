@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Pencil } from '@lucide/vue'
+import { formatCpf, formatPhone, formatDate } from '@/lib/format'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
@@ -16,14 +17,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:open', 'edit'])
-
-function formatCpf(cpf) {
-  return cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') ?? cpf
-}
-
-function formatDate(date) {
-  return date ? new Date(date + 'T00:00:00').toLocaleDateString('pt-BR') : '—'
-}
 
 function edit() {
   emit('update:open', false)
@@ -46,7 +39,7 @@ function edit() {
         </div>
         <div>
           <dt class="text-xs text-muted-foreground">Telefone</dt>
-          <dd class="font-medium">{{ patient.phone }}</dd>
+          <dd class="font-medium">{{ formatPhone(patient.phone) }}</dd>
         </div>
         <div>
           <dt class="text-xs text-muted-foreground">Nascimento</dt>

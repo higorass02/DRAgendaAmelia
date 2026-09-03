@@ -81,3 +81,12 @@ export const ALLOWED_TRANSITIONS = {
 export function statusMeta(status) {
   return STATUS_META[status] ?? STATUS_META.scheduled
 }
+
+// Espelha App\Enums\AppointmentStatus::isTerminal() — usado pra travar o
+// drag-and-drop do kanban nessas colunas (o card continua clicável pro
+// detalhe, só não pode mais mudar de coluna arrastando).
+export const TERMINAL_STATUSES = ['completed', 'rescheduled', 'cancelled', 'no_show']
+
+export function isTerminalStatus(status) {
+  return TERMINAL_STATUSES.includes(status)
+}

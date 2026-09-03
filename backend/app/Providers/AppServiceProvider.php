@@ -4,7 +4,8 @@ namespace App\Providers;
 
 use App\Models\Patient;
 use App\Models\Professional;
-use App\Observers\AuditObserver;
+use App\Observers\PatientAuditObserver;
+use App\Observers\ProfessionalAuditObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -39,7 +40,7 @@ class AppServiceProvider extends ServiceProvider
         // camada de Actions própria) — auditar via observer evita espalhar
         // AuditLog::record() em cada método. Appointment/User/Account logam
         // explicitamente onde o ator já está à mão (Actions/controllers).
-        Patient::observe(new AuditObserver('patient'));
-        Professional::observe(new AuditObserver('professional'));
+        Patient::observe(PatientAuditObserver::class);
+        Professional::observe(ProfessionalAuditObserver::class);
     }
 }

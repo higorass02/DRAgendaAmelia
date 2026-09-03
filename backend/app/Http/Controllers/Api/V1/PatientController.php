@@ -55,7 +55,10 @@ class PatientController extends Controller
                 $cpf = preg_replace('/\D/', '', (string) $request->string('cpf'));
                 $q->where('cpf', 'like', "%{$cpf}%");
             })
-            ->when($request->filled('phone'), fn ($q) => $q->where('phone', 'like', '%'.$request->string('phone').'%'))
+            ->when($request->filled('phone'), function ($q) use ($request) {
+                $phone = preg_replace('/\D/', '', (string) $request->string('phone'));
+                $q->where('phone', 'like', "%{$phone}%");
+            })
             ->when($request->filled('email'), fn ($q) => $q->where('email', 'like', '%'.$request->string('email').'%'))
             ->when($request->filled('birth_date_from'), fn ($q) => $q->whereDate('birth_date', '>=', $request->date('birth_date_from')))
             ->when($request->filled('birth_date_to'), fn ($q) => $q->whereDate('birth_date', '<=', $request->date('birth_date_to')))

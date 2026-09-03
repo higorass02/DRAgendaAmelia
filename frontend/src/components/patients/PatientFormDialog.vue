@@ -86,12 +86,12 @@ async function handleSubmit() {
         </div>
         <div class="flex flex-col gap-1.5">
           <Label for="cpf">CPF</Label>
-          <Input id="cpf" v-model="form.cpf" placeholder="000.000.000-00" required />
+          <Input id="cpf" v-model="form.cpf" v-cpf-mask autocomplete="off" placeholder="000.000.000-00" required />
           <p v-if="errors.cpf" class="text-sm text-destructive">{{ errors.cpf[0] }}</p>
         </div>
         <div class="flex flex-col gap-1.5">
           <Label for="phone">Telefone</Label>
-          <Input id="phone" v-model="form.phone" v-digits-only maxlength="11" required />
+          <Input id="phone" v-model="form.phone" v-phone-mask placeholder="(11) 99999-8888" autocomplete="tel" required />
           <p v-if="errors.phone" class="text-sm text-destructive">{{ errors.phone[0] }}</p>
         </div>
         <div class="flex flex-col gap-1.5">

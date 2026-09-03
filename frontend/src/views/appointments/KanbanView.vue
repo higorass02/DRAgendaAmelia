@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, computed, onMounted, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { toast } from 'vue-sonner'
 import api from '@/lib/api'
@@ -9,16 +9,24 @@ import ScheduleAppointmentDialog from '@/components/appointments/ScheduleAppoint
 import CancelAppointmentDialog from '@/components/appointments/CancelAppointmentDialog.vue'
 import RescheduleAppointmentDialog from '@/components/appointments/RescheduleAppointmentDialog.vue'
 import AppointmentDetailDialog from '@/components/appointments/AppointmentDetailDialog.vue'
+import FilterDrawer from '@/components/shared/FilterDrawer.vue'
+import DateInputBR from '@/components/shared/DateInputBR.vue'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { useAppointmentActions } from '@/composables/useAppointmentActions'
-import { STATUS_ORDER, ALLOWED_TRANSITIONS, statusMeta } from '@/lib/appointmentStatus'
+import { STATUS_ORDER, ALLOWED_TRANSITIONS, statusMeta, isTerminalStatus } from '@/lib/appointmentStatus'
 
 const loading = ref(true)
 const scheduleOpen = ref(false)
 const cancelOpen = ref(false)
 const rescheduleOpen = ref(false)
 const detailOpen = ref(false)
+const filtersOpen = ref(false)
 const selectedAppointment = ref(null)
 const selectedAppointmentId = ref(null)
+
+const filters = reactive({ patient_name: '', professional_name: '', from: '', to: '' })
+const activeFilterCount = computed(() => Object.values(filters).filter(Boolean).length)
 
 // vuedraggable precisa de um array de verdade (mutável) por coluna — não dá
 // pra usar um computed derivado direto, senão ele não consegue mover itens
@@ -28,13 +36,28 @@ const columnItems = reactive(Object.fromEntries(STATUS_ORDER.map((s) => [s, []])
 async function load() {
   loading.value = true
   try {
-    const { data } = await api.get('/appointments')
+    const params = { per_page: 100 }
+    if (filters.patient_name) params.patient_name = filters.patient_name
+    if (filters.professional_name) params.professional_name = filters.professional_name
+    if (filters.from) params.from = filters.from
+    if (filters.to) params.to = filters.to
+
+    const { data } = await api.get('/appointments', { params })
     for (const status of STATUS_ORDER) columnItems[status] = []
     for (const appointment of data.data) columnItems[appointment.status.value].push(appointment)
   } finally {
     loading.value = false
   }
 }
+
+function clearFilters() {
+  filters.patient_name = ''
+  filters.professional_name = ''
+  filters.from = ''
+  filters.to = ''
+}
+
+watch(filters, load)
 
 const { confirm, start, complete, noShow } = useAppointmentActions(load)
 
@@ -92,6 +115,32 @@ onMounted(load)
   <div class="flex flex-col gap-4">
     <AppointmentsNav @schedule="scheduleOpen = true" />
 
+    <div class="flex justify-end">
+      <FilterDrawer
+        v-model:open="filtersOpen"
+        :active-count="activeFilterCount"
+        title="Filtrar consultas"
+        @clear="clearFilters"
+      >
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Paciente</Label>
+          <Input v-model="filters.patient_name" placeholder="Buscar por nome" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Profissional</Label>
+          <Input v-model="filters.professional_name" placeholder="Buscar por nome" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">De</Label>
+          <DateInputBR v-model="filters.from" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Até</Label>
+          <DateInputBR v-model="filters.to" />
+        </div>
+      </FilterDrawer>
+    </div>
+
     <p v-if="loading" class="text-sm text-muted-foreground">Carregando...</p>
 
     <div v-else class="flex gap-4 overflow-x-auto pb-2">
@@ -108,7 +157,8 @@ onMounted(load)
 
         <draggable
           :list="columnItems[status]"
-          group="appointments"
+          :group="{ name: 'appointments', pull: !isTerminalStatus(status), put: true }"
+          :sort="!isTerminalStatus(status)"
           item-key="id"
           class="flex min-h-16 flex-col gap-3"
           ghost-class="opacity-40"

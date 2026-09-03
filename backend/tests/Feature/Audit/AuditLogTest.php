@@ -79,7 +79,9 @@ class AuditLogTest extends TestCase
         $log = AuditLog::query()->where('subject_type', 'patient')->where('action', 'updated')->firstOrFail();
         $this->assertSame($patient->id, $log->subject_id);
         $this->assertArrayHasKey('name', $log->changes);
-        $this->assertSame('Nome Novo', $log->changes['name']);
+        // assertEquals (não assertSame): o MySQL JSON não garante preservar a
+        // ordem das chaves no round-trip — os valores é que importam aqui.
+        $this->assertEquals(['from' => 'Nome Antigo', 'to' => 'Nome Novo'], $log->changes['name']);
     }
 
     public function test_creating_a_professional_is_logged(): void
@@ -128,11 +130,13 @@ class AuditLogTest extends TestCase
             ->postJson("/api/v1/appointments/{$appointmentId}/confirm")
             ->assertOk();
 
-        $this->assertDatabaseHas('audit_logs', [
-            'action' => 'confirmed',
-            'subject_type' => 'appointment',
-            'subject_id' => $appointmentId,
-        ]);
+        $log = AuditLog::query()
+            ->where('subject_type', 'appointment')
+            ->where('action', 'confirmed')
+            ->where('subject_id', $appointmentId)
+            ->firstOrFail();
+        $this->assertSame('scheduled', $log->changes['from']);
+        $this->assertSame('confirmed', $log->changes['to']);
     }
 
     public function test_login_and_logout_are_logged(): void
@@ -187,6 +191,41 @@ class AuditLogTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(1, 'data');
         $response->assertJsonPath('data.0.actor.id', $other->id);
+    }
+
+    public function test_can_filter_by_multiple_actors(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+        $userC = User::factory()->create();
+        AuditLog::factory()->create(['actor_id' => $userA->id]);
+        AuditLog::factory()->create(['actor_id' => $userB->id]);
+        AuditLog::factory()->create(['actor_id' => $userC->id]);
+
+        $response = $this->withHeaders($this->headers($admin))
+            ->getJson("/api/v1/audit-logs?".http_build_query(['actor_id' => [$userA->id, $userB->id]], '', '&'));
+
+        $response->assertOk();
+        $response->assertJsonCount(2, 'data');
+        $ids = collect($response->json('data'))->pluck('actor.id')->all();
+        $this->assertEqualsCanonicalizing([$userA->id, $userB->id], $ids);
+    }
+
+    public function test_can_filter_by_actor_name(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $ana = User::factory()->create(['name' => 'Ana Beatriz']);
+        $carlos = User::factory()->create(['name' => 'Carlos Souza']);
+        AuditLog::factory()->create(['actor_id' => $ana->id, 'actor_name' => $ana->name]);
+        AuditLog::factory()->create(['actor_id' => $carlos->id, 'actor_name' => $carlos->name]);
+
+        $response = $this->withHeaders($this->headers($admin))
+            ->getJson('/api/v1/audit-logs?actor_name=ana');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.actor.name', 'Ana Beatriz');
     }
 
     public function test_can_filter_by_action(): void

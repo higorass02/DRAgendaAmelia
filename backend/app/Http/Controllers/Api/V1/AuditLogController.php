@@ -32,7 +32,13 @@ class AuditLogController extends Controller
             new OA\Parameter(name: 'per_page', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', enum: ['created_at', 'action'])),
             new OA\Parameter(name: 'direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
-            new OA\Parameter(name: 'actor_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(
+                name: 'actor_id[]',
+                in: 'query',
+                description: 'Um ou mais IDs de usuário/ator (multi-seleção)',
+                schema: new OA\Schema(type: 'array', items: new OA\Items(type: 'integer'))
+            ),
+            new OA\Parameter(name: 'actor_name', in: 'query', description: 'Busca parcial pelo nome do ator', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'action', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'subject_type', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
@@ -49,8 +55,13 @@ class AuditLogController extends Controller
             abort(Response::HTTP_FORBIDDEN);
         }
 
+        $actorIds = array_map('intval', (array) $request->query('actor_id', []));
+
         $logs = AuditLog::query()
-            ->when($request->filled('actor_id'), fn ($q) => $q->where('actor_id', $request->integer('actor_id')))
+            ->when($actorIds !== [], fn ($q) => $q->whereIn('actor_id', $actorIds))
+            ->when($request->filled('actor_name'), function ($q) use ($request) {
+                $q->where('actor_name', 'like', '%'.$request->string('actor_name').'%');
+            })
             ->when($request->filled('action'), fn ($q) => $q->where('action', $request->string('action')))
             ->when($request->filled('subject_type'), fn ($q) => $q->where('subject_type', $request->string('subject_type')))
             ->when($request->filled('from'), fn ($q) => $q->where('created_at', '>=', $request->date('from')))

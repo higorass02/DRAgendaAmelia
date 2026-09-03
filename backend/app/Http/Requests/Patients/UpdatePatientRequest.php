@@ -16,6 +16,7 @@ class UpdatePatientRequest extends FormRequest
     {
         $this->merge([
             'cpf' => preg_replace('/\D/', '', (string) $this->input('cpf')),
+            'phone' => preg_replace('/\D/', '', (string) $this->input('phone')),
         ]);
     }
 

@@ -64,6 +64,48 @@ class PatientCrudTest extends TestCase
         $this->assertDatabaseHas('patients', ['cpf' => '11144477735', 'name' => 'Maria Silva']);
     }
 
+    public function test_phone_is_normalized_to_digits_only_on_create(): void
+    {
+        $response = $this->withHeaders($this->staffHeaders())->postJson('/api/v1/patients', [
+            'name' => 'Maria Silva',
+            'cpf' => '111.444.777-35',
+            'phone' => '(11) 99999-8888',
+            'birth_date' => '1990-05-10',
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('data.phone', '11999998888');
+        $this->assertDatabaseHas('patients', ['phone' => '11999998888']);
+    }
+
+    public function test_phone_is_normalized_to_digits_only_on_update(): void
+    {
+        $patient = Patient::factory()->create(['phone' => '11988887777']);
+
+        $response = $this->withHeaders($this->staffHeaders())->putJson("/api/v1/patients/{$patient->id}", [
+            'name' => $patient->name,
+            'cpf' => $patient->cpf,
+            'phone' => '(11) 99999-8888',
+            'birth_date' => $patient->birth_date->format('Y-m-d'),
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('patients', ['id' => $patient->id, 'phone' => '11999998888']);
+    }
+
+    public function test_can_search_by_masked_phone(): void
+    {
+        Patient::factory()->create(['phone' => '11999998888', 'name' => 'A']);
+        Patient::factory()->create(['phone' => '21988887777', 'name' => 'B']);
+
+        $response = $this->withHeaders($this->staffHeaders())
+            ->getJson('/api/v1/patients?'.http_build_query(['phone' => '(11) 999']));
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'A');
+    }
+
     public function test_cpf_must_be_11_digits(): void
     {
         $response = $this->withHeaders($this->staffHeaders())->postJson('/api/v1/patients', [

@@ -9,9 +9,11 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import Pagination from '@/components/shared/Pagination.vue'
 import SortableTableHead from '@/components/shared/SortableTableHead.vue'
 import FilterDrawer from '@/components/shared/FilterDrawer.vue'
+import DateInputBR from '@/components/shared/DateInputBR.vue'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
 import PatientDetailDialog from '@/components/patients/PatientDetailDialog.vue'
 import { useSort } from '@/composables/useSort'
+import { formatCpf, formatPhone, formatDate } from '@/lib/format'
 import { Plus, Pencil } from '@lucide/vue'
 
 const { sort, direction, toggleSort } = useSort('name')
@@ -83,14 +85,6 @@ function openDetail(patient) {
   detailOpen.value = true
 }
 
-function formatCpf(cpf) {
-  return cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') ?? cpf
-}
-
-function formatDate(date) {
-  return new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')
-}
-
 onMounted(load)
 </script>
 
@@ -111,11 +105,11 @@ onMounted(load)
           </div>
           <div class="flex flex-col gap-1.5">
             <Label class="text-xs text-muted-foreground">CPF</Label>
-            <Input v-model="filters.cpf" placeholder="Buscar por CPF" />
+            <Input v-model="filters.cpf" v-cpf-mask placeholder="Buscar por CPF" />
           </div>
           <div class="flex flex-col gap-1.5">
             <Label class="text-xs text-muted-foreground">Telefone</Label>
-            <Input v-model="filters.phone" v-digits-only placeholder="Buscar por telefone" />
+            <Input v-model="filters.phone" v-phone-mask placeholder="Buscar por telefone" />
           </div>
           <div class="flex flex-col gap-1.5">
             <Label class="text-xs text-muted-foreground">E-mail</Label>
@@ -123,11 +117,11 @@ onMounted(load)
           </div>
           <div class="flex flex-col gap-1.5">
             <Label class="text-xs text-muted-foreground">Nascido de</Label>
-            <Input v-model="filters.birth_date_from" type="date" />
+            <DateInputBR v-model="filters.birth_date_from" />
           </div>
           <div class="flex flex-col gap-1.5">
             <Label class="text-xs text-muted-foreground">Nascido até</Label>
-            <Input v-model="filters.birth_date_to" type="date" />
+            <DateInputBR v-model="filters.birth_date_to" />
           </div>
         </FilterDrawer>
         <Button @click="openCreate">
@@ -169,7 +163,7 @@ onMounted(load)
           >
             <TableCell class="font-medium">{{ patient.name }}</TableCell>
             <TableCell>{{ formatCpf(patient.cpf) }}</TableCell>
-            <TableCell>{{ patient.phone }}</TableCell>
+            <TableCell>{{ formatPhone(patient.phone) }}</TableCell>
             <TableCell>{{ patient.email ?? '—' }}</TableCell>
             <TableCell>{{ formatDate(patient.birth_date) }}</TableCell>
             <TableCell @click.stop>

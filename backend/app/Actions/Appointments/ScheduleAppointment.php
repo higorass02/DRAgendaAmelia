@@ -7,6 +7,7 @@ use App\Events\AppointmentScheduled;
 use App\Exceptions\OutsideAvailabilityException;
 use App\Exceptions\ScheduleConflictException;
 use App\Models\Appointment;
+use App\Models\AuditLog;
 use App\Models\Patient;
 use App\Models\Professional;
 use App\Models\StatusHistory;
@@ -57,6 +58,14 @@ class ScheduleAppointment
             ]);
 
             AppointmentScheduled::dispatch($appointment);
+
+            AuditLog::record(
+                actor: $actor,
+                action: 'scheduled',
+                subjectType: 'appointment',
+                subjectId: $appointment->id,
+                subjectLabel: "{$patient->name} com {$professional->name}",
+            );
 
             return $appointment;
         });

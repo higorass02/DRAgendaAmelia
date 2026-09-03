@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\AppointmentStatus;
+use App\Http\Requests\Professionals\AvailableSlotsRequest;
 use App\Http\Requests\Professionals\StoreProfessionalRequest;
 use App\Http\Requests\Professionals\UpdateProfessionalRequest;
 use App\Http\Resources\ProfessionalResource;
+use App\Models\Appointment;
 use App\Models\Professional;
 use App\Support\Http\ListQuery;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -128,5 +132,76 @@ class ProfessionalController extends Controller
         });
 
         return new ProfessionalResource($professional->load('availabilities'));
+    }
+
+    /**
+     * Status que "ocupam" o horário do profissional — mesmo critério de
+     * conflito usado em ScheduleAppointment::OCCUPYING_STATUSES.
+     */
+    private const OCCUPYING_STATUSES = [AppointmentStatus::Scheduled, AppointmentStatus::Confirmed];
+
+    #[OA\Get(
+        path: '/professionals/{professional}/available-slots',
+        tags: ['Professionals'],
+        summary: 'Horários livres de um profissional num dia, dado a disponibilidade configurada e as consultas já marcadas',
+        security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'professional', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'date', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'duration_minutes', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(
+                name: 'exclude_appointment_id',
+                in: 'query',
+                description: 'Ignora essa consulta ao calcular conflito (uso: remarcação)',
+                schema: new OA\Schema(type: 'integer')
+            ),
+        ],
+        responses: [
+            new OA\Response(response: 200, description: 'Lista de horários HH:mm livres nesse dia'),
+            new OA\Response(response: 422, description: 'Erro de validação'),
+        ]
+    )]
+    public function availableSlots(AvailableSlotsRequest $request, Professional $professional): JsonResponse
+    {
+        $this->authorize('view', $professional);
+
+        $date = Carbon::parse($request->validated('date'))->startOfDay();
+        $duration = $request->integer('duration_minutes') ?: 30;
+        $excludeId = $request->integer('exclude_appointment_id') ?: null;
+
+        $windows = $professional->availabilities()
+            ->where('weekday', $date->dayOfWeek)
+            ->orderBy('start_time')
+            ->get();
+
+        $busy = Appointment::query()
+            ->where('professional_id', $professional->id)
+            ->whereIn('status', self::OCCUPYING_STATUSES)
+            ->whereDate('start_at', $date->toDateString())
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+            ->get(['start_at', 'end_at']);
+
+        $slots = [];
+
+        foreach ($windows as $window) {
+            $slotStart = $date->copy()->setTimeFromTimeString($window->start_time);
+            $windowEnd = $date->copy()->setTimeFromTimeString($window->end_time);
+
+            while ($slotStart->copy()->addMinutes($duration)->lte($windowEnd)) {
+                $slotEnd = $slotStart->copy()->addMinutes($duration);
+
+                $conflict = $busy->contains(
+                    fn ($a) => $slotStart->lt($a->end_at) && $slotEnd->gt($a->start_at)
+                );
+
+                if (! $conflict) {
+                    $slots[] = $slotStart->format('H:i');
+                }
+
+                $slotStart->addMinutes($duration);
+            }
+        }
+
+        return response()->json(['slots' => $slots]);
     }
 }

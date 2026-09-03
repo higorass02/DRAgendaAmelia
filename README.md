@@ -18,8 +18,22 @@ auditoria, regras de negócio de saúde e atenção à LGPD.
 ## Como rodar
 
 ```bash
-cp .env.example .env
+./setup.sh
+```
+
+Isso sobe tudo (containers, `.env`s, `composer install`/`npm install`,
+migrations, seed de dados de exemplo) de forma automática e idempotente —
+seguro rodar de novo a qualquer momento; ele avisa no final se sobrou algum
+campo com valor de exemplo (`change_me`) pra revisar. Se preferir os passos
+manuais:
+
+```bash
+cp .env.example .env                    # senhas do MySQL/RabbitMQ
+cp backend/.env.example backend/.env    # copiar as mesmas senhas pra cá também
 docker compose up -d --build
+docker compose exec api composer install
+docker compose exec api php artisan key:generate
+docker compose exec api php artisan migrate --seed
 ```
 
 Isso sobe: MySQL, phpMyAdmin, RabbitMQ, API (Laravel + nginx), worker de fila
@@ -36,6 +50,16 @@ e frontend (Vite dev server). Tudo fica disponível em um único host:
 
 O nginx roteia `/api/*` e `/up` para o Laravel; o restante é proxy reverso
 para o Vite dev server (com suporte a hot-reload).
+
+### Contas de demonstração
+
+Criadas pelo seed (`php artisan db:seed`), senha `password` para todas:
+
+| E-mail                  | Papel          |
+|--------------------------|----------------|
+| `admin@dragenda.test`    | Administrador — gerencia usuários e vê a trilha de auditoria |
+| `staff@dragenda.test`    | Equipe         |
+| `patient@dragenda.test`  | Paciente       |
 
 ### Comandos úteis
 

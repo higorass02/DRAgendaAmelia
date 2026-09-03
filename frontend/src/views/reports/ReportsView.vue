@@ -2,10 +2,12 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '@/lib/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import FilterDrawer from '@/components/shared/FilterDrawer.vue'
 import MultiSelect from '@/components/shared/MultiSelect.vue'
+import DateInputBR from '@/components/shared/DateInputBR.vue'
+import { formatMinutes } from '@/lib/duration'
+import { formatLocalDate } from '@/lib/datetime'
 
 const report = ref(null)
 const loading = ref(true)
@@ -13,20 +15,23 @@ const professionals = ref([])
 const patients = ref([])
 const filtersOpen = ref(false)
 
-const today = new Date().toISOString().slice(0, 10)
-const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+const now = new Date()
+// Padrão: mês atual inteiro (dia 1 ao último dia do mês) — não "até hoje"
+// nem os últimos 30 dias corridos. Dia 0 do mês seguinte = último dia deste.
+const startOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth(), 1))
+const endOfMonth = formatLocalDate(new Date(now.getFullYear(), now.getMonth() + 1, 0))
 
 const filters = reactive({
-  from: thirtyDaysAgo,
-  to: today,
+  from: startOfMonth,
+  to: endOfMonth,
   professional_ids: [],
   patient_ids: [],
 })
 
 const activeFilterCount = computed(
   () =>
-    (filters.from !== thirtyDaysAgo ? 1 : 0) +
-    (filters.to !== today ? 1 : 0) +
+    (filters.from !== startOfMonth ? 1 : 0) +
+    (filters.to !== endOfMonth ? 1 : 0) +
     (filters.professional_ids.length > 0 ? 1 : 0) +
     (filters.patient_ids.length > 0 ? 1 : 0),
 )
@@ -49,8 +54,8 @@ async function load() {
 }
 
 function clearFilters() {
-  filters.from = thirtyDaysAgo
-  filters.to = today
+  filters.from = ''
+  filters.to = ''
   filters.professional_ids = []
   filters.patient_ids = []
 }
@@ -84,23 +89,31 @@ onMounted(async () => {
       >
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs text-muted-foreground">De</Label>
-          <Input v-model="filters.from" type="date" />
+          <DateInputBR v-model="filters.from" />
         </div>
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs text-muted-foreground">Até</Label>
-          <Input v-model="filters.to" type="date" />
+          <DateInputBR v-model="filters.to" />
         </div>
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs text-muted-foreground">Profissionais</Label>
           <MultiSelect
             v-model="filters.professional_ids"
             :options="professionalOptions"
+            searchable
             placeholder="Todos os profissionais"
+            search-placeholder="Buscar por nome"
           />
         </div>
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs text-muted-foreground">Pacientes</Label>
-          <MultiSelect v-model="filters.patient_ids" :options="patientOptions" placeholder="Todos os pacientes" />
+          <MultiSelect
+            v-model="filters.patient_ids"
+            :options="patientOptions"
+            searchable
+            placeholder="Todos os pacientes"
+            search-placeholder="Buscar por nome"
+          />
         </div>
       </FilterDrawer>
     </div>
@@ -155,7 +168,7 @@ onMounted(async () => {
               <div class="flex items-center justify-between text-sm">
                 <span class="font-medium">{{ p.name }}</span>
                 <span class="text-muted-foreground">
-                  {{ p.occupancy_rate }}% ({{ p.occupied_minutes }}min / {{ p.capacity_minutes }}min)
+                  {{ p.occupancy_rate }}% ({{ formatMinutes(p.occupied_minutes) }} / {{ formatMinutes(p.capacity_minutes) }})
                 </span>
               </div>
               <div class="h-2 w-full overflow-hidden rounded-full bg-muted">

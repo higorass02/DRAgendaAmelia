@@ -31,8 +31,15 @@ class AuditObserver
 
     public function updated(Model $model): void
     {
+        // getOriginal() ainda reflete o valor de ANTES desse save() no
+        // momento em que o evento "updated" dispara — o Model só chama
+        // syncOriginal() depois, no fireModelEvent('saved').
         $changes = collect($model->getChanges())
             ->except(['updated_at'])
+            ->mapWithKeys(fn ($value, $key) => [$key => [
+                'from' => $model->getOriginal($key),
+                'to' => $value,
+            ]])
             ->all();
 
         if ($changes === []) {

@@ -13,8 +13,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { combineLocalDateTime, addMinutesLocal } from '@/lib/datetime'
+import { useAvailableSlots } from '@/composables/useAvailableSlots'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
@@ -31,6 +33,18 @@ const errors = ref({})
 const generalError = ref('')
 const saving = ref(false)
 
+const { slots, loading: loadingSlots, fetchSlots } = useAvailableSlots()
+
+watch([date, durationMinutes], ([newDate, newDuration]) => {
+  startTime.value = ''
+  fetchSlots({
+    professionalId: props.appointment?.professional?.id,
+    date: newDate,
+    durationMinutes: newDuration,
+    excludeAppointmentId: props.appointment?.id,
+  })
+})
+
 watch(
   () => props.open,
   (open) => {
@@ -41,6 +55,7 @@ watch(
     startTime.value = ''
     durationMinutes.value = 30
     reason.value = ''
+    slots.value = []
   },
 )
 
@@ -84,19 +99,37 @@ async function handleSubmit() {
       </DialogHeader>
 
       <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
-        <div class="grid grid-cols-3 gap-2">
-          <div class="col-span-1 flex flex-col gap-1.5">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex flex-col gap-1.5">
             <Label for="r_date">Data</Label>
             <Input id="r_date" v-model="date" type="date" required />
           </div>
-          <div class="col-span-1 flex flex-col gap-1.5">
-            <Label for="r_start_time">Início</Label>
-            <Input id="r_start_time" v-model="startTime" type="time" required />
-          </div>
-          <div class="col-span-1 flex flex-col gap-1.5">
+          <div class="flex flex-col gap-1.5">
             <Label for="r_duration">Duração (min)</Label>
             <Input id="r_duration" v-model="durationMinutes" type="number" min="5" step="5" required />
           </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <Label>Horário</Label>
+          <Select v-model="startTime" :disabled="!date || slots.length === 0">
+            <SelectTrigger class="w-full">
+              <SelectValue
+                :placeholder="
+                  !date
+                    ? 'Escolha a data primeiro'
+                    : loadingSlots
+                      ? 'Carregando horários...'
+                      : slots.length === 0
+                        ? 'Nenhum horário livre nesse dia'
+                        : 'Selecione o horário'
+                "
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="slot in slots" :key="slot" :value="slot">{{ slot }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <p v-if="errors.start_at" class="text-sm text-destructive">{{ errors.start_at[0] }}</p>
         <p v-if="errors.end_at" class="text-sm text-destructive">{{ errors.end_at[0] }}</p>

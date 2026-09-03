@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Requests\Users\StoreUserRequest;
 use App\Http\Requests\Users\UpdateUserRequest;
 use App\Http\Resources\UserResource;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Http\ListQuery;
 use Illuminate\Http\JsonResponse;
@@ -94,6 +95,15 @@ class UserController extends Controller
         ]);
         $user->forceFill(['role' => $request->validated('role')])->save();
 
+        AuditLog::record(
+            actor: $request->user(),
+            action: 'created',
+            subjectType: 'user',
+            subjectId: $user->id,
+            subjectLabel: $user->name,
+            changes: ['role' => $user->role->value],
+        );
+
         return (new UserResource($user))->response()->setStatusCode(201);
     }
 
@@ -111,6 +121,8 @@ class UserController extends Controller
     )]
     public function update(UpdateUserRequest $request, User $user): UserResource
     {
+        $before = ['name' => $user->name, 'email' => $user->email, 'role' => $user->role->value];
+
         $user->fill([
             'name' => $request->validated('name'),
             'email' => $request->validated('email'),
@@ -122,6 +134,21 @@ class UserController extends Controller
 
         $user->save();
         $user->forceFill(['role' => $request->validated('role')])->save();
+
+        $after = ['name' => $user->name, 'email' => $user->email, 'role' => $user->role->value];
+        $changes = collect($after)
+            ->filter(fn ($value, $key) => $value !== $before[$key])
+            ->mapWithKeys(fn ($value, $key) => [$key => ['from' => $before[$key], 'to' => $value]])
+            ->all();
+
+        AuditLog::record(
+            actor: $request->user(),
+            action: 'updated',
+            subjectType: 'user',
+            subjectId: $user->id,
+            subjectLabel: $user->name,
+            changes: $changes,
+        );
 
         return new UserResource($user);
     }
@@ -147,6 +174,14 @@ class UserController extends Controller
                 'id' => 'Não é possível excluir a própria conta por aqui — use "Excluir minha conta" no seu perfil.',
             ]);
         }
+
+        AuditLog::record(
+            actor: $request->user(),
+            action: 'deleted',
+            subjectType: 'user',
+            subjectId: $user->id,
+            subjectLabel: $user->name,
+        );
 
         $user->tokens()->delete();
         $user->delete();
