@@ -2,7 +2,7 @@
 import { TableHead } from '@/components/ui/table'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from '@lucide/vue'
 
-defineProps({
+const props = defineProps({
   label: { type: String, required: true },
   sortKey: { type: String, required: true },
   sort: { type: String, default: '' },
@@ -14,7 +14,7 @@ defineEmits(['change'])
 </script>
 
 <template>
-  <TableHead :class="class">
+  <TableHead :class="props.class">
     <button
       type="button"
       class="inline-flex items-center gap-1 text-foreground hover:text-primary"

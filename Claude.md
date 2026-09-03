@@ -398,6 +398,17 @@ README (pergunta de "volume 50x").
   salvar (mesma convenção já usada pro CPF), e o filtro de busca por
   telefone também normaliza a query antes do `LIKE`. Filtro de CPF (que
   ainda aceitava letra) ganhou a mesma restrição de dígitos.
+- **Pós-Fase 5, rodada 5 (a pedido):** CI no GitHub Actions
+  (`.github/workflows/`) — pipeline de backend sobe o `api` via Docker
+  Compose (mesma imagem/rede do dev, evita divergência de ambiente) e roda o
+  PHPUnit contra MySQL real; pipeline de frontend roda `npm run build` como
+  gate principal (lint roda mas não bloqueia — há débito pré-existente não
+  endereçado). Ambas só disparam quando o path relevante muda. De passagem,
+  achei e corrigi um bug real de um componente próprio
+  (`SortableTableHead.vue`) ao rodar lint sem `--fix` pela primeira vez:
+  `:class="class"` usava a palavra reservada `class` como expressão de
+  template — funcionava por acidente no compilador do Vue, mas quebrava o
+  parser do ESLint; corrigido pra `:class="props.class"`.
 - **Fase 6 — Testes + docs + vídeo.** Cobertura crítica, 3 ADRs, README completo,
   AI_USAGE, GIF/vídeo.
 

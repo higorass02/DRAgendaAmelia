@@ -1,5 +1,8 @@
 # DR Agenda Amélia
 
+[![Backend CI](https://github.com/higorass02/DRAgendaAmelia/actions/workflows/backend.yml/badge.svg)](https://github.com/higorass02/DRAgendaAmelia/actions/workflows/backend.yml)
+[![Frontend CI](https://github.com/higorass02/DRAgendaAmelia/actions/workflows/frontend.yml/badge.svg)](https://github.com/higorass02/DRAgendaAmelia/actions/workflows/frontend.yml)
+
 Módulo de agendamento de consultas: cadastro de pacientes e profissionais de
 saúde, agendamento de consultas e ciclo de vida da consulta com trilha de
 auditoria, regras de negócio de saúde e atenção à LGPD.
@@ -74,6 +77,22 @@ docker compose exec api php artisan rabbitmq:provision  # declara a fila notific
 Notificações (agendamento, confirmação, cancelamento) são assíncronas via
 RabbitMQ (fila `notifications`), com retry e dead-letter queue — ver
 [ADR 0001](./docs/adr/0001-isolamento-da-notificacao.md).
+
+## CI
+
+Duas pipelines no GitHub Actions (`.github/workflows/`), cada uma só dispara
+quando algo relevante a ela muda:
+
+- **Backend CI** (`backend.yml`): sobe o `api` via Docker Compose (mesma
+  imagem/rede do dev — evita divergência de extensão PHP/versão entre CI e
+  local), `composer install`, `migrate` e roda a suíte inteira do PHPUnit
+  contra MySQL de verdade (não SQLite — os testes de conflito de agenda
+  dependem de locking real do InnoDB).
+- **Frontend CI** (`frontend.yml`): `npm ci` + `npm run build` (pega erro de
+  import/sintaxe em toda a árvore de componentes — o mesmo gate usado durante
+  o desenvolvimento desta aplicação). Lint roda também, mas não bloqueia
+  ainda — há débito de lint pré-existente (nomes de componente de uma palavra
+  só nos primitivos do shadcn-vue, entre outros) que não foi endereçado.
 
 ## Decisões de arquitetura
 

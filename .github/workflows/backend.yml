@@ -1,0 +1,62 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - "docker/api/**"
+      - "docker-compose.yml"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "docker/api/**"
+      - "docker-compose.yml"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  test:
+    name: PHPUnit (PHP 8.3 + MySQL 8)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Mesma imagem/rede do docker-compose.yml usado em dev — evita
+      # divergência de extensões PHP/versão entre CI e ambiente local.
+      - name: Prepare environment files
+        run: |
+          cp .env.example .env
+          cp backend/.env.example backend/.env
+
+      - name: Build and start the API container (brings up MySQL/RabbitMQ as dependencies)
+        run: docker compose up -d --build api
+
+      - name: Wait for the API container to accept commands
+        run: |
+          for i in $(seq 1 30); do
+            docker compose exec -T api true && exit 0
+            sleep 2
+          done
+          echo "API container never became ready" >&2
+          exit 1
+
+      - name: Install PHP dependencies
+        run: docker compose exec -T api composer install --no-interaction --prefer-dist
+
+      - name: Generate application key
+        run: docker compose exec -T api php artisan key:generate --force
+
+      # phpunit.xml aponta pro banco "dragenda_testing" (criado automaticamente
+      # pelo docker/mysql/init/01-create-testing-db.sql) — migrate aqui é só
+      # pro schema, o app real usa "dragenda" (config de backend/.env).
+      - name: Run database migrations
+        run: docker compose exec -T api php artisan migrate --force
+
+      - name: Run backend test suite
+        run: docker compose exec -T api php artisan test
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs api mysql rabbitmq
