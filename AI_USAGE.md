@@ -74,6 +74,29 @@ repositório, com acesso a shell, Docker e ao sistema de arquivos local.
   API rodando (login, filtros, relatórios com dados reais), e revisão de
   código — não houve teste visual em navegador real.
 
+- **Pós-Fase 5, rodada 2 (a pedido):** sistema de roles com admin (`User-
+  Role::Admin`, `User::hasStaffAccess()` como superconjunto de staff em
+  todas as policies), CRUD de usuários exclusivo de admin, autoatendimento
+  de conta (trocar senha, excluir a própria conta — com revogação de
+  tokens), paginação com tamanho de página ajustável e ordenação por coluna
+  em todas as listagens (helper único `ListQuery`), filtro de relatório por
+  profissional/paciente virando multi-seleção. No frontend: gaveta de
+  filtros lateral (`FilterDrawer`) substituindo os grids fixos, cabeçalhos
+  de tabela ordenáveis, modal de detalhe com botão de editar em pacientes/
+  profissionais, restrição de dígitos no telefone, e o menu do usuário no
+  cabeçalho. Todo esse trabalho seguiu TDD no backend (RED confirmado antes
+  de cada endpoint existir; 154 testes passando no fim). Dois bugs reais
+  corrigidos por leitura de código, não só "buildou, então tá bom": o
+  diálogo de remarcar consulta descartava silenciosamente erros de domínio
+  sem `errors` por campo (só o toast global avisava, e o usuário reportou
+  não estar vendo aviso nenhum); e o drag-and-drop do kanban só desfazia o
+  movimento otimista do card quando a ação dava certo, deixando o card
+  "preso" na coluna errada em caso de rejeição da API. Mesma limitação da
+  rodada anterior: sem ferramenta de browser nesta sessão, interações
+  visuais (drag-and-drop, cliques, a gaveta) foram verificadas por build de
+  produção limpo + smoke test real via curl contra a API rodando + revisão
+  de código — não por navegação real.
+
 *(Seções seguintes serão preenchidas conforme o projeto avança pelas fases.)*
 
 ## O que foi revisado manualmente

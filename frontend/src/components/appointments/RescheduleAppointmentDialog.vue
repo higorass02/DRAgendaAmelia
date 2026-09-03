@@ -62,8 +62,8 @@ async function handleSubmit() {
     emit('saved')
     emit('update:open', false)
   } catch (e) {
-    if (e.response?.status === 422) {
-      errors.value = e.response.data.errors ?? {}
+    if (e.response?.status === 422 && e.response.data.errors) {
+      errors.value = e.response.data.errors
     } else if (e.response?.data?.message) {
       generalError.value = e.response.data.message
     }
@@ -106,7 +106,12 @@ async function handleSubmit() {
           <Textarea id="r_reason" v-model="reason" rows="3" />
         </div>
 
-        <p v-if="generalError" class="text-sm text-destructive">{{ generalError }}</p>
+        <p
+          v-if="generalError"
+          class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+        >
+          {{ generalError }}
+        </p>
 
         <DialogFooter>
           <Button type="submit" :disabled="saving">{{ saving ? 'Remarcando...' : 'Remarcar' }}</Button>

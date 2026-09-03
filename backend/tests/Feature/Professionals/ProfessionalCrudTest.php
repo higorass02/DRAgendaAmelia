@@ -134,6 +134,30 @@ class ProfessionalCrudTest extends TestCase
         $response->assertJsonPath('data.0.name', 'Dr. Carlos Souza');
     }
 
+    public function test_page_size_can_be_customized(): void
+    {
+        Professional::factory()->count(20)->create();
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/professionals?per_page=5');
+
+        $response->assertOk();
+        $response->assertJsonCount(5, 'data');
+        $response->assertJsonPath('meta.per_page', 5);
+    }
+
+    public function test_can_sort_by_name_descending(): void
+    {
+        Professional::factory()->create(['name' => 'Ana']);
+        Professional::factory()->create(['name' => 'Bruno']);
+
+        $response = $this->withHeaders($this->staffHeaders())
+            ->getJson('/api/v1/professionals?sort=name&direction=desc');
+
+        $response->assertOk();
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertSame(['Bruno', 'Ana'], $names);
+    }
+
     public function test_can_search_by_specialty(): void
     {
         Professional::factory()->create(['name' => 'A', 'specialty' => 'Cardiologia']);

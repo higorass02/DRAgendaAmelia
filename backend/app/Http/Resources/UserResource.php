@@ -12,7 +12,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'id', type: 'integer', example: 1),
         new OA\Property(property: 'name', type: 'string', example: 'Recepção Central'),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'staff@dragenda.test'),
-        new OA\Property(property: 'role', type: 'string', enum: ['staff', 'patient'], example: 'staff'),
+        new OA\Property(property: 'role', type: 'string', enum: ['admin', 'staff', 'patient'], example: 'staff'),
     ]
 )]
 class UserResource extends JsonResource
@@ -24,6 +24,7 @@ class UserResource extends JsonResource
             'name' => $this->name,
             'email' => $this->email,
             'role' => $this->role->value,
+            'role_label' => $this->role->label(),
         ];
     }
 }

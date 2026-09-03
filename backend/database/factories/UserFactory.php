@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -41,5 +42,19 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * "role" fica fora do Fillable de propósito (ver App\Models\User) — por
+     * isso é setado depois via forceFill em vez de um state() normal.
+     */
+    public function admin(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->forceFill(['role' => UserRole::Admin])->save());
+    }
+
+    public function patient(): static
+    {
+        return $this->afterCreating(fn (User $user) => $user->forceFill(['role' => UserRole::Patient])->save());
     }
 }

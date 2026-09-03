@@ -53,4 +53,18 @@ class User extends Authenticatable
     {
         return $this->hasOne(Patient::class);
     }
+
+    /**
+     * Admin é um superconjunto de staff — todo lugar que hoje só checa
+     * "é staff" (policies, relatórios) deve deixar admin passar também.
+     */
+    public function hasStaffAccess(): bool
+    {
+        return in_array($this->role, [UserRole::Staff, UserRole::Admin], true);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === UserRole::Admin;
+    }
 }

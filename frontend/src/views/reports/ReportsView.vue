@@ -1,17 +1,17 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '@/lib/api'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
-import { X } from '@lucide/vue'
+import FilterDrawer from '@/components/shared/FilterDrawer.vue'
+import MultiSelect from '@/components/shared/MultiSelect.vue'
 
 const report = ref(null)
 const loading = ref(true)
 const professionals = ref([])
 const patients = ref([])
+const filtersOpen = ref(false)
 
 const today = new Date().toISOString().slice(0, 10)
 const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -19,16 +19,27 @@ const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOStrin
 const filters = reactive({
   from: thirtyDaysAgo,
   to: today,
-  professional_id: 'all',
-  patient_id: 'all',
+  professional_ids: [],
+  patient_ids: [],
 })
+
+const activeFilterCount = computed(
+  () =>
+    (filters.from !== thirtyDaysAgo ? 1 : 0) +
+    (filters.to !== today ? 1 : 0) +
+    (filters.professional_ids.length > 0 ? 1 : 0) +
+    (filters.patient_ids.length > 0 ? 1 : 0),
+)
+
+const professionalOptions = computed(() => professionals.value.map((p) => ({ id: p.id, label: p.name })))
+const patientOptions = computed(() => patients.value.map((p) => ({ id: p.id, label: p.name })))
 
 async function load() {
   loading.value = true
   try {
     const params = { from: filters.from, to: filters.to }
-    if (filters.professional_id !== 'all') params.professional_id = filters.professional_id
-    if (filters.patient_id !== 'all') params.patient_id = filters.patient_id
+    if (filters.professional_ids.length) params.professional_id = filters.professional_ids
+    if (filters.patient_ids.length) params.patient_id = filters.patient_ids
 
     const { data } = await api.get('/reports', { params })
     report.value = data
@@ -40,8 +51,8 @@ async function load() {
 function clearFilters() {
   filters.from = thirtyDaysAgo
   filters.to = today
-  filters.professional_id = 'all'
-  filters.patient_id = 'all'
+  filters.professional_ids = []
+  filters.patient_ids = []
 }
 
 function formatPercent(value) {
@@ -52,8 +63,8 @@ watch(filters, load)
 
 onMounted(async () => {
   const [{ data: professionalData }, { data: patientData }] = await Promise.all([
-    api.get('/professionals'),
-    api.get('/patients'),
+    api.get('/professionals', { params: { per_page: 100 } }),
+    api.get('/patients', { params: { per_page: 100 } }),
   ])
   professionals.value = professionalData.data
   patients.value = patientData.data
@@ -63,41 +74,35 @@ onMounted(async () => {
 
 <template>
   <div class="flex flex-col gap-4">
-    <h1 class="text-xl font-semibold">Relatórios</h1>
-
-    <div class="grid grid-cols-2 gap-3 rounded-md border border-border p-3 sm:grid-cols-3 lg:grid-cols-5">
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">De</Label>
-        <Input v-model="filters.from" type="date" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Até</Label>
-        <Input v-model="filters.to" type="date" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Profissional</Label>
-        <Select v-model="filters.professional_id">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem v-for="p in professionals" :key="p.id" :value="String(p.id)">{{ p.name }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Paciente</Label>
-        <Select v-model="filters.patient_id">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem v-for="p in patients" :key="p.id" :value="String(p.id)">{{ p.name }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Button variant="ghost" size="sm" class="self-end justify-self-start" @click="clearFilters">
-        <X class="size-4" />
-        Limpar filtros
-      </Button>
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-semibold">Relatórios</h1>
+      <FilterDrawer
+        v-model:open="filtersOpen"
+        :active-count="activeFilterCount"
+        title="Filtrar relatórios"
+        @clear="clearFilters"
+      >
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">De</Label>
+          <Input v-model="filters.from" type="date" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Até</Label>
+          <Input v-model="filters.to" type="date" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Profissionais</Label>
+          <MultiSelect
+            v-model="filters.professional_ids"
+            :options="professionalOptions"
+            placeholder="Todos os profissionais"
+          />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Pacientes</Label>
+          <MultiSelect v-model="filters.patient_ids" :options="patientOptions" placeholder="Todos os pacientes" />
+        </div>
+      </FilterDrawer>
     </div>
 
     <p v-if="loading" class="text-sm text-muted-foreground">Carregando...</p>

@@ -44,10 +44,16 @@ const router = createRouter({
       name: 'reports',
       component: () => import('@/views/reports/ReportsView.vue'),
     },
+    {
+      path: '/users',
+      name: 'users',
+      component: () => import('@/views/users/UsersView.vue'),
+      meta: { adminOnly: true },
+    },
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
@@ -56,6 +62,15 @@ router.beforeEach((to) => {
 
   if (!to.meta.guestOnly && !auth.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+
+  if (to.meta.adminOnly && auth.isAuthenticated) {
+    if (!auth.user) {
+      await auth.fetchUser()
+    }
+    if (!auth.isAdmin) {
+      return { name: 'appointments.kanban' }
+    }
   }
 })
 

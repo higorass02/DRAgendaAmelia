@@ -147,7 +147,7 @@ class AppointmentReportsTest extends TestCase
         $to = now()->addDays(60)->toDateString();
 
         $response = $this->withHeaders($this->headers($staff))
-            ->getJson("/api/v1/reports?professional_id={$professionalB->id}&from={$from}&to={$to}");
+            ->getJson("/api/v1/reports?professional_id[]={$professionalB->id}&from={$from}&to={$to}");
 
         $response->assertOk();
         // 1 no_show de 2 consultas do profissional B = 50% (ignora o do A).
@@ -156,6 +156,35 @@ class AppointmentReportsTest extends TestCase
         $occupancy = collect($response->json('occupancy_by_professional'));
         $this->assertCount(1, $occupancy);
         $this->assertSame($professionalB->id, $occupancy->first()['professional_id']);
+    }
+
+    public function test_can_filter_by_multiple_professionals(): void
+    {
+        $staff = User::factory()->create();
+        $professionalA = Professional::factory()->create();
+        $professionalB = Professional::factory()->create();
+        $professionalC = Professional::factory()->create();
+
+        Appointment::factory()->create(['professional_id' => $professionalA->id, 'status' => AppointmentStatus::NoShow]);
+        Appointment::factory()->create(['professional_id' => $professionalB->id, 'status' => AppointmentStatus::NoShow]);
+        Appointment::factory()->create(['professional_id' => $professionalC->id, 'status' => AppointmentStatus::Confirmed]);
+
+        $from = now()->toDateString();
+        $to = now()->addDays(60)->toDateString();
+
+        $response = $this->withHeaders($this->headers($staff))
+            ->getJson("/api/v1/reports?professional_id[]={$professionalA->id}&professional_id[]={$professionalB->id}&from={$from}&to={$to}");
+
+        $response->assertOk();
+        // 2 no_show de 2 consultas (A + B) = 100%, ignora C.
+        $this->assertEquals(100.0, $response->json('no_show_rate'));
+
+        $occupancy = collect($response->json('occupancy_by_professional'));
+        $this->assertCount(2, $occupancy);
+        $this->assertEqualsCanonicalizing(
+            [$professionalA->id, $professionalB->id],
+            $occupancy->pluck('professional_id')->all()
+        );
     }
 
     public function test_can_filter_by_patient(): void
@@ -171,7 +200,28 @@ class AppointmentReportsTest extends TestCase
         $to = now()->addDays(60)->toDateString();
 
         $response = $this->withHeaders($this->headers($staff))
-            ->getJson("/api/v1/reports?patient_id={$patientA->id}&from={$from}&to={$to}");
+            ->getJson("/api/v1/reports?patient_id[]={$patientA->id}&from={$from}&to={$to}");
+
+        $response->assertOk();
+        $this->assertEquals(100.0, $response->json('no_show_rate'));
+    }
+
+    public function test_can_filter_by_multiple_patients(): void
+    {
+        $staff = User::factory()->create();
+        $patientA = \App\Models\Patient::factory()->create();
+        $patientB = \App\Models\Patient::factory()->create();
+        $patientC = \App\Models\Patient::factory()->create();
+
+        Appointment::factory()->create(['patient_id' => $patientA->id, 'status' => AppointmentStatus::NoShow]);
+        Appointment::factory()->create(['patient_id' => $patientB->id, 'status' => AppointmentStatus::NoShow]);
+        Appointment::factory()->create(['patient_id' => $patientC->id, 'status' => AppointmentStatus::Confirmed]);
+
+        $from = now()->toDateString();
+        $to = now()->addDays(60)->toDateString();
+
+        $response = $this->withHeaders($this->headers($staff))
+            ->getJson("/api/v1/reports?patient_id[]={$patientA->id}&patient_id[]={$patientB->id}&from={$from}&to={$to}");
 
         $response->assertOk();
         $this->assertEquals(100.0, $response->json('no_show_rate'));

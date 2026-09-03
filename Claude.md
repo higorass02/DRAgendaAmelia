@@ -305,6 +305,44 @@ README (pergunta de "volume 50x").
   profissionais: nome/especialidade; consultas: paciente/profissional/
   status/período). Relatórios ganharam filtro por profissional e paciente.
   126 testes de backend passando.
+- **Pós-Fase 5, rodada 2 (a pedido):** sistema de roles com admin — `UserRole`
+  ganhou o case `Admin`; `User::hasStaffAccess()` trata admin como
+  superconjunto de staff em todas as policies e no `ReportController` (staff
+  continua igual, nada perdeu acesso). CRUD de usuários exclusivo de admin
+  (`UserPolicy`, rotas `/users`), com guarda explícita contra o admin se
+  auto-excluir por essa rota (422, orientando a usar "excluir minha conta").
+  Autoatendimento de conta pra qualquer usuário autenticado: `PUT /me/password`
+  (exige `current_password`) e `DELETE /me` (exige senha, revoga todos os
+  tokens — pego um bug de cache de guard só-de-teste do Laravel/Sanctum ao
+  escrever o teste, mesmo padrão já usado em `LogoutAndMeTest`). Paginação
+  ganhou `per_page` ajustável (capado em 100) e ordenação por coluna
+  (`sort`/`direction`, whitelist por endpoint) via helper único
+  (`App\Support\Http\ListQuery`), aplicado em pacientes/profissionais/
+  consultas/usuários. Relatórios: filtro de profissional/paciente virou
+  multi-seleção (`professional_id[]`/`patient_id[]`, `whereIn`). No frontend:
+  gaveta de filtros (`FilterDrawer`, um `Sheet` construído em cima dos
+  primitivos do Dialog já existentes) substituiu os grids de filtro fixos em
+  consultas/pacientes/profissionais/relatórios; cabeçalhos de tabela
+  ordenáveis (`SortableTableHead`); modal de detalhe (com botão "Editar") ao
+  clicar numa linha de paciente/profissional, não só em consultas; campo de
+  telefone restrito a dígitos (diretiva `v-digits-only` — não existe campo de
+  CEP no sistema, então não foi criado um só pra essa regra); menu do usuário
+  no cabeçalho com trocar senha/excluir conta/gerenciar usuários (item de
+  admin). Dois bugs reais corrigidos nessa rodada: (1) o diálogo de remarcar
+  só tratava erro de validação por campo (`errors`), então uma rejeição de
+  domínio (ex.: transição inválida) com só `message` não aparecia em lugar
+  nenhum visível no formulário — o toast global existia, mas o usuário
+  reportou não estar vendo nada; corrigido pra sempre cair no aviso inline
+  quando não há `errors` por campo, e o aviso agora é uma caixa destacada, não
+  só texto vermelho; (2) drag-and-drop no kanban só recarregava (desfazendo o
+  movimento otimista do card) quando a transição dava certo — se a API
+  rejeitasse, o card ficava visualmente "preso" na coluna errada até o próximo
+  reload manual; `useAppointmentActions` agora recarrega em `finally`, sucesso
+  ou falha. **Mesma limitação da rodada anterior:** sem ferramenta de browser
+  nesta sessão, então drag-and-drop, cliques em linha/card e a gaveta de
+  filtros foram verificados por build de produção limpo + smoke test real via
+  curl contra a API + revisão de código, não por interação visual real.
+  154 testes de backend passando.
 - **Fase 6 — Testes + docs + vídeo.** Cobertura crítica, 3 ADRs, README completo,
   AI_USAGE, GIF/vídeo.
 

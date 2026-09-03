@@ -6,6 +6,7 @@ use App\Http\Requests\Patients\StorePatientRequest;
 use App\Http\Requests\Patients\UpdatePatientRequest;
 use App\Http\Resources\PatientResource;
 use App\Models\Patient;
+use App\Support\Http\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -13,6 +14,14 @@ use OpenApi\Attributes as OA;
 
 class PatientController extends Controller
 {
+    private const SORTABLE = [
+        'name' => 'name',
+        'cpf' => 'cpf',
+        'email' => 'email',
+        'birth_date' => 'birth_date',
+        'created_at' => 'created_at',
+    ];
+
     #[OA\Get(
         path: '/patients',
         tags: ['Patients'],
@@ -20,6 +29,9 @@ class PatientController extends Controller
         security: [['bearerAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', description: 'Itens por página (máx. 100)', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', enum: ['name', 'cpf', 'email', 'birth_date', 'created_at'])),
+            new OA\Parameter(name: 'direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
             new OA\Parameter(name: 'name', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'cpf', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'phone', in: 'query', schema: new OA\Schema(type: 'string')),
@@ -47,8 +59,8 @@ class PatientController extends Controller
             ->when($request->filled('email'), fn ($q) => $q->where('email', 'like', '%'.$request->string('email').'%'))
             ->when($request->filled('birth_date_from'), fn ($q) => $q->whereDate('birth_date', '>=', $request->date('birth_date_from')))
             ->when($request->filled('birth_date_to'), fn ($q) => $q->whereDate('birth_date', '<=', $request->date('birth_date_to')))
-            ->orderBy('name')
-            ->paginate(15);
+            ->tap(fn ($q) => ListQuery::applySort($q, $request, self::SORTABLE, 'name'))
+            ->paginate(ListQuery::perPage($request));
 
         return PatientResource::collection($patients);
     }

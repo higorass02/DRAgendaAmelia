@@ -31,34 +31,34 @@ class AppointmentReportService
         AppointmentStatus::NoShow,
     ];
 
-    public function build(Carbon $from, Carbon $to, ?int $professionalId = null, ?int $patientId = null): array
+    public function build(Carbon $from, Carbon $to, array $professionalIds = [], array $patientIds = []): array
     {
         $appointments = Appointment::query()
             ->whereBetween('start_at', [$from, $to])
-            ->when($professionalId, fn ($q) => $q->where('professional_id', $professionalId))
-            ->when($patientId, fn ($q) => $q->where('patient_id', $patientId))
+            ->when($professionalIds, fn ($q) => $q->whereIn('professional_id', $professionalIds))
+            ->when($patientIds, fn ($q) => $q->whereIn('patient_id', $patientIds))
             ->get(['id', 'professional_id', 'status', 'start_at', 'end_at']);
 
         $total = $appointments->count();
 
         return [
             'period' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
-            'filters' => ['professional_id' => $professionalId, 'patient_id' => $patientId],
+            'filters' => ['professional_id' => $professionalIds, 'patient_id' => $patientIds],
             'no_show_rate' => $this->rate($appointments->where('status', AppointmentStatus::NoShow)->count(), $total),
             'reschedule_rate' => $this->rate($appointments->where('status', AppointmentStatus::Rescheduled)->count(), $total),
-            'cancellations' => $this->cancellations($from, $to, $professionalId, $patientId),
-            'occupancy_by_professional' => $this->occupancyByProfessional($appointments, $from, $to, $professionalId),
+            'cancellations' => $this->cancellations($from, $to, $professionalIds, $patientIds),
+            'occupancy_by_professional' => $this->occupancyByProfessional($appointments, $from, $to, $professionalIds),
         ];
     }
 
-    private function cancellations(Carbon $from, Carbon $to, ?int $professionalId, ?int $patientId): array
+    private function cancellations(Carbon $from, Carbon $to, array $professionalIds, array $patientIds): array
     {
         $cancellations = StatusHistory::query()
             ->join('appointments', 'appointments.id', '=', 'status_histories.appointment_id')
             ->where('status_histories.to_status', AppointmentStatus::Cancelled)
             ->whereBetween('appointments.start_at', [$from, $to])
-            ->when($professionalId, fn ($q) => $q->where('appointments.professional_id', $professionalId))
-            ->when($patientId, fn ($q) => $q->where('appointments.patient_id', $patientId))
+            ->when($professionalIds, fn ($q) => $q->whereIn('appointments.professional_id', $professionalIds))
+            ->when($patientIds, fn ($q) => $q->whereIn('appointments.patient_id', $patientIds))
             ->get(['status_histories.changed_at', 'appointments.start_at']);
 
         $lastMinute = $cancellations->filter(
@@ -75,7 +75,7 @@ class AppointmentReportService
         ];
     }
 
-    private function occupancyByProfessional($appointments, Carbon $from, Carbon $to, ?int $professionalId): array
+    private function occupancyByProfessional($appointments, Carbon $from, Carbon $to, array $professionalIds): array
     {
         $weeks = max(1, $from->diffInDays($to) / 7);
 
@@ -86,7 +86,7 @@ class AppointmentReportService
 
         return Professional::query()
             ->with('availabilities')
-            ->when($professionalId, fn ($q) => $q->where('id', $professionalId))
+            ->when($professionalIds, fn ($q) => $q->whereIn('id', $professionalIds))
             ->get()
             ->map(function (Professional $professional) use ($occupiedByProfessional, $weeks) {
                 $weeklyCapacity = $professional->availabilities->sum(

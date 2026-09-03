@@ -91,7 +91,7 @@ async function handleSubmit() {
         </div>
         <div class="flex flex-col gap-1.5">
           <Label for="phone">Telefone</Label>
-          <Input id="phone" v-model="form.phone" required />
+          <Input id="phone" v-model="form.phone" v-digits-only maxlength="11" required />
           <p v-if="errors.phone" class="text-sm text-destructive">{{ errors.phone[0] }}</p>
         </div>
         <div class="flex flex-col gap-1.5">

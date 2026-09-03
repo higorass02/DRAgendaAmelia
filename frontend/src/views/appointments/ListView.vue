@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import api from '@/lib/api'
 import AppointmentsNav from '@/components/appointments/AppointmentsNav.vue'
@@ -9,6 +9,8 @@ import CancelAppointmentDialog from '@/components/appointments/CancelAppointment
 import RescheduleAppointmentDialog from '@/components/appointments/RescheduleAppointmentDialog.vue'
 import AppointmentDetailDialog from '@/components/appointments/AppointmentDetailDialog.vue'
 import Pagination from '@/components/shared/Pagination.vue'
+import FilterDrawer from '@/components/shared/FilterDrawer.vue'
+import SortableTableHead from '@/components/shared/SortableTableHead.vue'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -21,8 +23,9 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
 import { useAppointmentActions } from '@/composables/useAppointmentActions'
+import { useSort } from '@/composables/useSort'
 import { STATUS_ORDER, statusMeta } from '@/lib/appointmentStatus'
-import { MoreVertical, X } from '@lucide/vue'
+import { MoreVertical } from '@lucide/vue'
 
 const appointments = ref([])
 const meta = ref(null)
@@ -32,8 +35,11 @@ const scheduleOpen = ref(false)
 const cancelOpen = ref(false)
 const rescheduleOpen = ref(false)
 const detailOpen = ref(false)
+const filtersOpen = ref(false)
 const selectedAppointment = ref(null)
 const selectedAppointmentId = ref(null)
+
+const { sort, direction, toggleSort } = useSort('start_at')
 
 const filters = reactive({
   status: 'all',
@@ -43,12 +49,16 @@ const filters = reactive({
   to: '',
 })
 
+const activeFilterCount = computed(
+  () => Object.entries(filters).filter(([key, value]) => value && !(key === 'status' && value === 'all')).length,
+)
+
 const { confirm, start, complete, noShow } = useAppointmentActions(() => load())
 
 async function load() {
   loading.value = true
   try {
-    const params = { page: page.value }
+    const params = { page: page.value, sort: sort.value, direction: direction.value }
     if (filters.status !== 'all') params.status = filters.status
     if (filters.patient_name) params.patient_name = filters.patient_name
     if (filters.professional_name) params.professional_name = filters.professional_name
@@ -70,6 +80,10 @@ const debouncedSearch = useDebounceFn(() => {
 
 watch(filters, debouncedSearch)
 watch(page, load)
+watch([sort, direction], () => {
+  page.value = 1
+  load()
+})
 
 function clearFilters() {
   filters.status = 'all'
@@ -111,37 +125,40 @@ onMounted(load)
   <div class="flex flex-col gap-4">
     <AppointmentsNav @schedule="scheduleOpen = true" />
 
-    <div class="grid grid-cols-2 gap-3 rounded-md border border-border p-3 sm:grid-cols-3 lg:grid-cols-6">
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Status</Label>
-        <Select v-model="filters.status">
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem v-for="s in STATUS_ORDER" :key="s" :value="s">{{ statusMeta(s).label }}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Paciente</Label>
-        <Input v-model="filters.patient_name" placeholder="Buscar por nome" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Profissional</Label>
-        <Input v-model="filters.professional_name" placeholder="Buscar por nome" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">De</Label>
-        <Input v-model="filters.from" type="date" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Até</Label>
-        <Input v-model="filters.to" type="date" />
-      </div>
-      <Button variant="ghost" size="sm" class="self-end justify-self-start" @click="clearFilters">
-        <X class="size-4" />
-        Limpar filtros
-      </Button>
+    <div class="flex justify-end">
+      <FilterDrawer
+        v-model:open="filtersOpen"
+        :active-count="activeFilterCount"
+        title="Filtrar consultas"
+        @clear="clearFilters"
+      >
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Status</Label>
+          <Select v-model="filters.status">
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              <SelectItem v-for="s in STATUS_ORDER" :key="s" :value="s">{{ statusMeta(s).label }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Paciente</Label>
+          <Input v-model="filters.patient_name" placeholder="Buscar por nome" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Profissional</Label>
+          <Input v-model="filters.professional_name" placeholder="Buscar por nome" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">De</Label>
+          <Input v-model="filters.from" type="date" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs text-muted-foreground">Até</Label>
+          <Input v-model="filters.to" type="date" />
+        </div>
+      </FilterDrawer>
     </div>
 
     <p v-if="loading" class="text-sm text-muted-foreground">Carregando...</p>
@@ -155,8 +172,20 @@ onMounted(load)
           <TableRow>
             <TableHead>Paciente</TableHead>
             <TableHead>Profissional</TableHead>
-            <TableHead>Data/Hora</TableHead>
-            <TableHead>Status</TableHead>
+            <SortableTableHead
+              label="Data/Hora"
+              sort-key="start_at"
+              :sort="sort"
+              :direction="direction"
+              @change="toggleSort"
+            />
+            <SortableTableHead
+              label="Status"
+              sort-key="status"
+              :sort="sort"
+              :direction="direction"
+              @change="toggleSort"
+            />
             <TableHead class="w-10" />
           </TableRow>
         </TableHeader>

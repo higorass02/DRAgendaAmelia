@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -7,14 +7,23 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import Pagination from '@/components/shared/Pagination.vue'
+import SortableTableHead from '@/components/shared/SortableTableHead.vue'
+import FilterDrawer from '@/components/shared/FilterDrawer.vue'
 import PatientFormDialog from '@/components/patients/PatientFormDialog.vue'
-import { Plus, Pencil, X } from '@lucide/vue'
+import PatientDetailDialog from '@/components/patients/PatientDetailDialog.vue'
+import { useSort } from '@/composables/useSort'
+import { Plus, Pencil } from '@lucide/vue'
+
+const { sort, direction, toggleSort } = useSort('name')
 
 const patients = ref([])
 const meta = ref(null)
 const loading = ref(true)
 const dialogOpen = ref(false)
+const detailOpen = ref(false)
+const filtersOpen = ref(false)
 const editingPatient = ref(null)
+const selectedPatient = ref(null)
 const page = ref(1)
 
 const filters = reactive({
@@ -26,10 +35,12 @@ const filters = reactive({
   birth_date_to: '',
 })
 
+const activeFilterCount = computed(() => Object.values(filters).filter(Boolean).length)
+
 async function load() {
   loading.value = true
   try {
-    const params = { page: page.value }
+    const params = { page: page.value, sort: sort.value, direction: direction.value }
     for (const [key, value] of Object.entries(filters)) {
       if (value) params[key] = value
     }
@@ -48,6 +59,10 @@ const debouncedSearch = useDebounceFn(() => {
 
 watch(filters, debouncedSearch)
 watch(page, load)
+watch([sort, direction], () => {
+  page.value = 1
+  load()
+})
 
 function clearFilters() {
   Object.keys(filters).forEach((key) => (filters[key] = ''))
@@ -61,6 +76,11 @@ function openCreate() {
 function openEdit(patient) {
   editingPatient.value = patient
   dialogOpen.value = true
+}
+
+function openDetail(patient) {
+  selectedPatient.value = patient
+  detailOpen.value = true
 }
 
 function formatCpf(cpf) {
@@ -78,41 +98,43 @@ onMounted(load)
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
       <h1 class="text-xl font-semibold">Pacientes</h1>
-      <Button @click="openCreate">
-        <Plus class="size-4" />
-        Novo paciente
-      </Button>
-    </div>
-
-    <div class="grid grid-cols-2 gap-3 rounded-md border border-border p-3 sm:grid-cols-3 lg:grid-cols-6">
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Nome</Label>
-        <Input v-model="filters.name" placeholder="Buscar por nome" />
+      <div class="flex items-center gap-2">
+        <FilterDrawer
+          v-model:open="filtersOpen"
+          :active-count="activeFilterCount"
+          title="Filtrar pacientes"
+          @clear="clearFilters"
+        >
+          <div class="flex flex-col gap-1.5">
+            <Label class="text-xs text-muted-foreground">Nome</Label>
+            <Input v-model="filters.name" placeholder="Buscar por nome" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <Label class="text-xs text-muted-foreground">CPF</Label>
+            <Input v-model="filters.cpf" placeholder="Buscar por CPF" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <Label class="text-xs text-muted-foreground">Telefone</Label>
+            <Input v-model="filters.phone" v-digits-only placeholder="Buscar por telefone" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <Label class="text-xs text-muted-foreground">E-mail</Label>
+            <Input v-model="filters.email" placeholder="Buscar por e-mail" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <Label class="text-xs text-muted-foreground">Nascido de</Label>
+            <Input v-model="filters.birth_date_from" type="date" />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <Label class="text-xs text-muted-foreground">Nascido até</Label>
+            <Input v-model="filters.birth_date_to" type="date" />
+          </div>
+        </FilterDrawer>
+        <Button @click="openCreate">
+          <Plus class="size-4" />
+          Novo paciente
+        </Button>
       </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">CPF</Label>
-        <Input v-model="filters.cpf" placeholder="Buscar por CPF" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Telefone</Label>
-        <Input v-model="filters.phone" placeholder="Buscar por telefone" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">E-mail</Label>
-        <Input v-model="filters.email" placeholder="Buscar por e-mail" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Nascido de</Label>
-        <Input v-model="filters.birth_date_from" type="date" />
-      </div>
-      <div class="flex flex-col gap-1">
-        <Label class="text-xs text-muted-foreground">Nascido até</Label>
-        <Input v-model="filters.birth_date_to" type="date" />
-      </div>
-      <Button variant="ghost" size="sm" class="col-span-2 justify-self-start sm:col-span-1" @click="clearFilters">
-        <X class="size-4" />
-        Limpar filtros
-      </Button>
     </div>
 
     <p v-if="loading" class="text-sm text-muted-foreground">Carregando...</p>
@@ -124,22 +146,33 @@ onMounted(load)
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>CPF</TableHead>
+            <SortableTableHead label="Nome" sort-key="name" :sort="sort" :direction="direction" @change="toggleSort" />
+            <SortableTableHead label="CPF" sort-key="cpf" :sort="sort" :direction="direction" @change="toggleSort" />
             <TableHead>Telefone</TableHead>
-            <TableHead>E-mail</TableHead>
-            <TableHead>Nascimento</TableHead>
+            <SortableTableHead label="E-mail" sort-key="email" :sort="sort" :direction="direction" @change="toggleSort" />
+            <SortableTableHead
+              label="Nascimento"
+              sort-key="birth_date"
+              :sort="sort"
+              :direction="direction"
+              @change="toggleSort"
+            />
             <TableHead class="w-10" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="patient in patients" :key="patient.id">
+          <TableRow
+            v-for="patient in patients"
+            :key="patient.id"
+            class="cursor-pointer"
+            @click="openDetail(patient)"
+          >
             <TableCell class="font-medium">{{ patient.name }}</TableCell>
             <TableCell>{{ formatCpf(patient.cpf) }}</TableCell>
             <TableCell>{{ patient.phone }}</TableCell>
             <TableCell>{{ patient.email ?? '—' }}</TableCell>
             <TableCell>{{ formatDate(patient.birth_date) }}</TableCell>
-            <TableCell>
+            <TableCell @click.stop>
               <Button variant="ghost" size="icon" @click="openEdit(patient)">
                 <Pencil class="size-4" />
               </Button>
@@ -155,6 +188,11 @@ onMounted(load)
       v-model:open="dialogOpen"
       :patient="editingPatient"
       @saved="load"
+    />
+    <PatientDetailDialog
+      v-model:open="detailOpen"
+      :patient="selectedPatient"
+      @edit="openEdit"
     />
   </div>
 </template>

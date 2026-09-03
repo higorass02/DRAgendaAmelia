@@ -1,21 +1,49 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
-import { CalendarDays, Users, Stethoscope, BarChart3, LogOut, Menu, X } from '@lucide/vue'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import ChangePasswordDialog from '@/components/account/ChangePasswordDialog.vue'
+import DeleteAccountDialog from '@/components/account/DeleteAccountDialog.vue'
+import {
+  CalendarDays,
+  Users,
+  Stethoscope,
+  BarChart3,
+  LogOut,
+  Menu,
+  X,
+  UserCircle,
+  KeyRound,
+  ShieldCheck,
+  Trash2,
+  ChevronDown,
+} from '@lucide/vue'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const mobileOpen = ref(false)
+const changePasswordOpen = ref(false)
+const deleteAccountOpen = ref(false)
 
-const nav = [
+const ROLE_LABELS = { admin: 'Administrador', staff: 'Equipe', patient: 'Paciente' }
+
+const nav = computed(() => [
   { name: 'appointments.kanban', label: 'Consultas', icon: CalendarDays, match: 'appointments' },
   { name: 'patients', label: 'Pacientes', icon: Users, match: 'patients' },
   { name: 'professionals', label: 'Profissionais', icon: Stethoscope, match: 'professionals' },
   { name: 'reports', label: 'Relatórios', icon: BarChart3, match: 'reports' },
-]
+  ...(auth.isAdmin ? [{ name: 'users', label: 'Usuários', icon: ShieldCheck, match: 'users' }] : []),
+])
 
 function isActive(item) {
   return route.path.includes(item.match)
@@ -23,6 +51,11 @@ function isActive(item) {
 
 async function handleLogout() {
   await auth.logout()
+  router.push({ name: 'login' })
+}
+
+async function handleAccountDeleted() {
+  auth.forceLogout()
   router.push({ name: 'login' })
 }
 </script>
@@ -41,14 +74,48 @@ async function handleLogout() {
         </button>
         <span class="font-semibold">Agenda</span>
         <div class="ml-auto flex items-center gap-3">
-          <span class="hidden sm:inline text-sm text-muted-foreground">{{ auth.user?.name }}</span>
-          <Button variant="ghost" size="sm" @click="handleLogout">
-            <LogOut class="size-4" />
-            <span class="hidden sm:inline">Sair</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="ghost" size="sm" class="gap-2">
+                <UserCircle class="size-5" />
+                <span class="hidden flex-col items-start leading-tight sm:flex">
+                  <span class="text-sm font-medium">{{ auth.user?.name }}</span>
+                  <span class="text-xs text-muted-foreground">{{ ROLE_LABELS[auth.user?.role] ?? auth.user?.role }}</span>
+                </span>
+                <ChevronDown class="size-3.5 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-56">
+              <DropdownMenuLabel>
+                <p class="font-medium">{{ auth.user?.name }}</p>
+                <p class="text-xs font-normal text-muted-foreground">{{ auth.user?.email }}</p>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem v-if="auth.isAdmin" @click="router.push({ name: 'users' })">
+                <ShieldCheck class="size-4" />
+                Gerenciar usuários
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="changePasswordOpen = true">
+                <KeyRound class="size-4" />
+                Trocar senha
+              </DropdownMenuItem>
+              <DropdownMenuItem class="text-destructive" @click="deleteAccountOpen = true">
+                <Trash2 class="size-4" />
+                Excluir minha conta
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="handleLogout">
+                <LogOut class="size-4" />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
+
+    <ChangePasswordDialog v-model:open="changePasswordOpen" />
+    <DeleteAccountDialog v-model:open="deleteAccountOpen" @deleted="handleAccountDeleted" />
 
     <div class="flex">
       <aside

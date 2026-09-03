@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\UserRole;
 use App\Services\Reports\AppointmentReportService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -20,8 +19,18 @@ class ReportController extends Controller
         parameters: [
             new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
-            new OA\Parameter(name: 'professional_id', in: 'query', schema: new OA\Schema(type: 'integer')),
-            new OA\Parameter(name: 'patient_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(
+                name: 'professional_id[]',
+                in: 'query',
+                description: 'Um ou mais IDs de profissional (multi-seleção)',
+                schema: new OA\Schema(type: 'array', items: new OA\Items(type: 'integer'))
+            ),
+            new OA\Parameter(
+                name: 'patient_id[]',
+                in: 'query',
+                description: 'Um ou mais IDs de paciente (multi-seleção)',
+                schema: new OA\Schema(type: 'array', items: new OA\Items(type: 'integer'))
+            ),
         ],
         responses: [
             new OA\Response(response: 200, description: 'Métricas agregadas do período (padrão: últimos 30 dias)'),
@@ -30,7 +39,7 @@ class ReportController extends Controller
     )]
     public function index(Request $request, AppointmentReportService $service): JsonResponse
     {
-        if ($request->user()->role !== UserRole::Staff) {
+        if (! $request->user()->hasStaffAccess()) {
             abort(Response::HTTP_FORBIDDEN);
         }
 
@@ -40,8 +49,8 @@ class ReportController extends Controller
         return response()->json($service->build(
             $from,
             $to,
-            $request->filled('professional_id') ? $request->integer('professional_id') : null,
-            $request->filled('patient_id') ? $request->integer('patient_id') : null,
+            array_map('intval', (array) $request->query('professional_id', [])),
+            array_map('intval', (array) $request->query('patient_id', [])),
         ));
     }
 }

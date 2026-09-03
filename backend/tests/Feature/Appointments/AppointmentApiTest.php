@@ -290,15 +290,39 @@ class AppointmentApiTest extends TestCase
 
     public function test_index_is_paginated(): void
     {
-        Appointment::factory()->count(25)->create();
+        Appointment::factory()->count(20)->create();
 
         $response = $this->withHeaders($this->headers())->getJson('/api/v1/appointments');
 
         $response->assertOk();
-        $response->assertJsonCount(20, 'data');
-        $response->assertJsonPath('meta.total', 25);
+        $response->assertJsonCount(15, 'data');
+        $response->assertJsonPath('meta.total', 20);
 
         $second = $this->withHeaders($this->headers())->getJson('/api/v1/appointments?page=2');
         $second->assertJsonCount(5, 'data');
+    }
+
+    public function test_index_page_size_can_be_customized(): void
+    {
+        Appointment::factory()->count(20)->create();
+
+        $response = $this->withHeaders($this->headers())->getJson('/api/v1/appointments?per_page=5');
+
+        $response->assertOk();
+        $response->assertJsonCount(5, 'data');
+        $response->assertJsonPath('meta.per_page', 5);
+    }
+
+    public function test_index_can_sort_by_start_at_descending(): void
+    {
+        $earlier = Appointment::factory()->create(['start_at' => $this->nextMonday('09:00'), 'end_at' => $this->nextMonday('09:30')]);
+        $later = Appointment::factory()->create(['start_at' => $this->nextMonday('14:00'), 'end_at' => $this->nextMonday('14:30')]);
+
+        $response = $this->withHeaders($this->headers())
+            ->getJson('/api/v1/appointments?sort=start_at&direction=desc');
+
+        $response->assertOk();
+        $ids = collect($response->json('data'))->pluck('id')->all();
+        $this->assertSame([$later->id, $earlier->id], $ids);
     }
 }

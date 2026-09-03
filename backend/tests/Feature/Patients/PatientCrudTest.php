@@ -206,4 +206,39 @@ class PatientCrudTest extends TestCase
         $response->assertJsonCount(1, 'data');
         $response->assertJsonPath('data.0.name', 'A');
     }
+
+    public function test_page_size_can_be_customized(): void
+    {
+        Patient::factory()->count(20)->create();
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients?per_page=5');
+
+        $response->assertOk();
+        $response->assertJsonCount(5, 'data');
+        $response->assertJsonPath('meta.per_page', 5);
+        $response->assertJsonPath('meta.last_page', 4);
+    }
+
+    public function test_page_size_is_capped(): void
+    {
+        Patient::factory()->count(3)->create();
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients?per_page=99999');
+
+        $response->assertOk();
+        $response->assertJsonPath('meta.per_page', 100);
+    }
+
+    public function test_can_sort_by_name_descending(): void
+    {
+        Patient::factory()->create(['name' => 'Ana']);
+        Patient::factory()->create(['name' => 'Bruno']);
+
+        $response = $this->withHeaders($this->staffHeaders())
+            ->getJson('/api/v1/patients?sort=name&direction=desc');
+
+        $response->assertOk();
+        $names = collect($response->json('data'))->pluck('name')->all();
+        $this->assertSame(['Bruno', 'Ana'], $names);
+    }
 }

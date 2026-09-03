@@ -13,9 +13,12 @@ export function useAppointmentActions(onDone) {
     try {
       await api.post(`/appointments/${appointment.id}/${action}`)
       toast.success(ACTION_MESSAGES[action] ?? 'Feito.')
-      onDone?.()
     } catch {
       // o interceptor de api.js já mostra o toast de erro
+    } finally {
+      // recarrega sempre (sucesso ou falha) — se a API rejeitou a
+      // transição, isso desfaz o movimento otimista do card no Kanban.
+      onDone?.()
     }
   }
 

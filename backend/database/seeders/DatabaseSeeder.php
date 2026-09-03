@@ -26,6 +26,12 @@ class DatabaseSeeder extends Seeder
             'email' => 'staff@dragenda.test',
         ]);
 
+        $admin = User::factory()->create([
+            'name' => 'Administrador',
+            'email' => 'admin@dragenda.test',
+        ]);
+        $admin->forceFill(['role' => UserRole::Admin])->save();
+
         $professionals = Professional::factory(5)->create();
 
         foreach ($professionals as $professional) {

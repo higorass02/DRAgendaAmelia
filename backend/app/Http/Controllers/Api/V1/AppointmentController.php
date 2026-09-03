@@ -14,6 +14,7 @@ use App\Http\Resources\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Professional;
+use App\Support\Http\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,6 +24,12 @@ class AppointmentController extends Controller
 {
     private const WITH = ['patient', 'professional', 'createdBy'];
 
+    private const SORTABLE = [
+        'start_at' => 'start_at',
+        'status' => 'status',
+        'created_at' => 'created_at',
+    ];
+
     #[OA\Get(
         path: '/appointments',
         tags: ['Appointments'],
@@ -30,6 +37,9 @@ class AppointmentController extends Controller
         security: [['bearerAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', description: 'Itens por página (máx. 100)', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', enum: ['start_at', 'status', 'created_at'])),
+            new OA\Parameter(name: 'direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
             new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'professional_id', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'patient_id', in: 'query', schema: new OA\Schema(type: 'integer')),
@@ -57,8 +67,8 @@ class AppointmentController extends Controller
             })
             ->when($request->filled('from'), fn ($q) => $q->where('start_at', '>=', $request->date('from')))
             ->when($request->filled('to'), fn ($q) => $q->where('start_at', '<=', $request->date('to')->endOfDay()))
-            ->orderBy('start_at')
-            ->paginate(20);
+            ->tap(fn ($q) => ListQuery::applySort($q, $request, self::SORTABLE, 'start_at'))
+            ->paginate(ListQuery::perPage($request));
 
         return AppointmentResource::collection($appointments);
     }

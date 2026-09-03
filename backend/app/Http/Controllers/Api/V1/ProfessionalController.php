@@ -6,6 +6,7 @@ use App\Http\Requests\Professionals\StoreProfessionalRequest;
 use App\Http\Requests\Professionals\UpdateProfessionalRequest;
 use App\Http\Resources\ProfessionalResource;
 use App\Models\Professional;
+use App\Support\Http\ListQuery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -14,6 +15,12 @@ use OpenApi\Attributes as OA;
 
 class ProfessionalController extends Controller
 {
+    private const SORTABLE = [
+        'name' => 'name',
+        'specialty' => 'specialty',
+        'created_at' => 'created_at',
+    ];
+
     #[OA\Get(
         path: '/professionals',
         tags: ['Professionals'],
@@ -21,6 +28,9 @@ class ProfessionalController extends Controller
         security: [['bearerAuth' => []]],
         parameters: [
             new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'per_page', in: 'query', description: 'Itens por página (máx. 100)', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'sort', in: 'query', schema: new OA\Schema(type: 'string', enum: ['name', 'specialty', 'created_at'])),
+            new OA\Parameter(name: 'direction', in: 'query', schema: new OA\Schema(type: 'string', enum: ['asc', 'desc'])),
             new OA\Parameter(name: 'name', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'specialty', in: 'query', schema: new OA\Schema(type: 'string')),
         ],
@@ -34,8 +44,8 @@ class ProfessionalController extends Controller
             ->with('availabilities')
             ->when($request->filled('name'), fn ($q) => $q->where('name', 'like', '%'.$request->string('name').'%'))
             ->when($request->filled('specialty'), fn ($q) => $q->where('specialty', 'like', '%'.$request->string('specialty').'%'))
-            ->orderBy('name')
-            ->paginate(15);
+            ->tap(fn ($q) => ListQuery::applySort($q, $request, self::SORTABLE, 'name'))
+            ->paginate(ListQuery::perPage($request));
 
         return ProfessionalResource::collection($professionals);
     }

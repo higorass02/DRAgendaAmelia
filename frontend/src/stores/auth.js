@@ -7,6 +7,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
 
   const isAuthenticated = computed(() => !!token.value)
+  const isAdmin = computed(() => user.value?.role === 'admin')
 
   function setToken(newToken) {
     token.value = newToken
@@ -45,5 +46,5 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
 
-  return { token, user, isAuthenticated, login, logout, forceLogout, fetchUser }
+  return { token, user, isAuthenticated, isAdmin, login, logout, forceLogout, fetchUser }
 })

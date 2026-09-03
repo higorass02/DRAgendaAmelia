@@ -1,11 +1,8 @@
-# Healthtech Scheduling
+# DR Agenda Amélia
 
 Módulo de agendamento de consultas: cadastro de pacientes e profissionais de
 saúde, agendamento de consultas e ciclo de vida da consulta com trilha de
 auditoria, regras de negócio de saúde e atenção à LGPD.
-
-> Este README cobre o estado atual (Fase 0 — ambiente e esqueleto). Seções
-> marcadas como pendentes serão preenchidas nas fases seguintes.
 
 ## Stack
 

@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Models\Patient;
+use App\Models\Professional;
+use App\Observers\AuditObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -31,5 +34,12 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('writes', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Patient/Professional têm CRUD simples direto no controller (sem
+        // camada de Actions própria) — auditar via observer evita espalhar
+        // AuditLog::record() em cada método. Appointment/User/Account logam
+        // explicitamente onde o ator já está à mão (Actions/controllers).
+        Patient::observe(new AuditObserver('patient'));
+        Professional::observe(new AuditObserver('professional'));
     }
 }

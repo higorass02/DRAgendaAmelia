@@ -1,10 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountController;
+use App\Http\Controllers\Api\V1\AuditLogController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\ProfessionalController;
 use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +35,12 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::put('me/password', [AccountController::class, 'changePassword']);
+    Route::delete('me', [AccountController::class, 'destroy']);
+
+    Route::apiResource('users', UserController::class)->except(['show']);
+    Route::get('audit-logs', [AuditLogController::class, 'index']);
+
     Route::apiResource('patients', PatientController::class)->except(['destroy']);
     Route::apiResource('professionals', ProfessionalController::class)->except(['destroy']);
 

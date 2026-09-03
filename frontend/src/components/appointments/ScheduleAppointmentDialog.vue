@@ -141,7 +141,12 @@ async function handleSubmit() {
         </div>
         <p v-if="errors.start_at" class="text-sm text-destructive">{{ errors.start_at[0] }}</p>
         <p v-if="errors.end_at" class="text-sm text-destructive">{{ errors.end_at[0] }}</p>
-        <p v-if="generalError" class="text-sm text-destructive">{{ generalError }}</p>
+        <p
+          v-if="generalError"
+          class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+        >
+          {{ generalError }}
+        </p>
 
         <DialogFooter>
           <Button type="submit" :disabled="saving">{{ saving ? 'Agendando...' : 'Agendar' }}</Button>
