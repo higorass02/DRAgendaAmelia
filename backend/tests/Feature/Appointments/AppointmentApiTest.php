@@ -227,4 +227,78 @@ class AppointmentApiTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(1, 'data');
     }
+
+    public function test_index_filters_by_single_day_includes_the_whole_day(): void
+    {
+        // Regressão: "to" só com data (sem hora) precisa cobrir o dia
+        // inteiro (fim do dia), não só o instante exato da meia-noite —
+        // senão nenhuma consulta do próprio dia aparece (agenda de um dia
+        // específico ficaria sempre vazia).
+        $appointment = Appointment::factory()->create([
+            'start_at' => $this->nextMonday('14:00'),
+            'end_at' => $this->nextMonday('14:30'),
+        ]);
+        $nextMondayDate = Carbon::parse('next monday')->toDateString();
+
+        $response = $this->withHeaders($this->headers())
+            ->getJson("/api/v1/appointments?from={$nextMondayDate}&to={$nextMondayDate}");
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $appointment->id);
+    }
+
+    public function test_index_filters_by_patient(): void
+    {
+        $otherPatient = Patient::factory()->create();
+        Appointment::factory()->create(['patient_id' => $this->patient->id]);
+        Appointment::factory()->create(['patient_id' => $otherPatient->id]);
+
+        $response = $this->withHeaders($this->headers())
+            ->getJson("/api/v1/appointments?patient_id={$this->patient->id}");
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+    }
+
+    public function test_index_can_search_by_patient_name(): void
+    {
+        $maria = Patient::factory()->create(['name' => 'Maria da Silva']);
+        Appointment::factory()->create(['patient_id' => $maria->id]);
+        Appointment::factory()->create(['patient_id' => $this->patient->id]);
+
+        $response = $this->withHeaders($this->headers())->getJson('/api/v1/appointments?patient_name=maria');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.patient.name', 'Maria da Silva');
+    }
+
+    public function test_index_can_search_by_professional_name(): void
+    {
+        $other = Professional::factory()->create(['name' => 'Dr. Roberto Alves']);
+        Appointment::factory()->create(['professional_id' => $other->id]);
+        Appointment::factory()->create(['professional_id' => $this->professional->id]);
+
+        $response = $this->withHeaders($this->headers())
+            ->getJson('/api/v1/appointments?professional_name=roberto');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.professional.name', 'Dr. Roberto Alves');
+    }
+
+    public function test_index_is_paginated(): void
+    {
+        Appointment::factory()->count(25)->create();
+
+        $response = $this->withHeaders($this->headers())->getJson('/api/v1/appointments');
+
+        $response->assertOk();
+        $response->assertJsonCount(20, 'data');
+        $response->assertJsonPath('meta.total', 25);
+
+        $second = $this->withHeaders($this->headers())->getJson('/api/v1/appointments?page=2');
+        $second->assertJsonCount(5, 'data');
+    }
 }

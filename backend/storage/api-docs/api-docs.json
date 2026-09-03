@@ -21,6 +21,13 @@
                 "operationId": "bb7eecafa9f5d72b005274a851db91ea",
                 "parameters": [
                     {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
                         "name": "status",
                         "in": "query",
                         "schema": {
@@ -39,6 +46,20 @@
                         "in": "query",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "patient_name",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "professional_name",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     {
@@ -504,8 +525,61 @@
                 "tags": [
                     "Patients"
                 ],
-                "summary": "Lista pacientes",
+                "summary": "Lista pacientes (paginada, filtrável por nome, CPF, telefone, e-mail e data de nascimento)",
                 "operationId": "25da496d74a0ef65407930b3a958b687",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "name",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "cpf",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "phone",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "birth_date_from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "birth_date_to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Lista paginada de pacientes"
@@ -663,8 +737,31 @@
                 "tags": [
                     "Professionals"
                 ],
-                "summary": "Lista profissionais",
+                "summary": "Lista profissionais (paginada, filtrável por nome e especialidade)",
                 "operationId": "81bad49e55435925bc09a395da98311f",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "name",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "specialty",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Lista paginada de profissionais"
@@ -792,6 +889,60 @@
                     },
                     "422": {
                         "description": "Erro de validação"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/reports": {
+            "get": {
+                "tags": [
+                    "Appointments"
+                ],
+                "summary": "Relatórios agregados (no-show, cancelamentos, remarcação, ocupação)",
+                "operationId": "d5f982d58cc7c26025aceed3003718fd",
+                "parameters": [
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "professional_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "patient_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Métricas agregadas do período (padrão: últimos 30 dias)"
+                    },
+                    "403": {
+                        "description": "Sem permissão (só staff)"
                     }
                 },
                 "security": [

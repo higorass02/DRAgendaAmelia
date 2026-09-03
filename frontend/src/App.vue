@@ -1,20 +1,15 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import AppShell from '@/components/layout/AppShell.vue'
+import { Toaster } from '@/components/ui/sonner'
 </script>
 
 <template>
-  <div class="min-h-screen bg-background text-foreground">
-    <header class="border-b border-border">
-      <nav class="mx-auto flex max-w-5xl items-center gap-4 px-6 py-4">
-        <RouterLink to="/" class="font-semibold">Agenda</RouterLink>
-        <RouterLink to="/about" class="text-sm text-muted-foreground hover:text-foreground">
-          Sobre
-        </RouterLink>
-      </nav>
-    </header>
+  <Toaster position="top-right" rich-colors />
 
-    <main class="mx-auto max-w-5xl px-6 py-8">
-      <RouterView />
-    </main>
-  </div>
+  <AppShell v-if="useAuthStore().isAuthenticated">
+    <RouterView />
+  </AppShell>
+  <RouterView v-else />
 </template>

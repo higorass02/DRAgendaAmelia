@@ -107,4 +107,42 @@ class ProfessionalCrudTest extends TestCase
         $this->assertDatabaseCount('professional_availabilities', 1);
         $this->assertDatabaseHas('professional_availabilities', ['professional_id' => $professional->id, 'weekday' => 5]);
     }
+
+    public function test_list_is_paginated(): void
+    {
+        Professional::factory()->count(20)->create();
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/professionals');
+
+        $response->assertOk();
+        $response->assertJsonCount(15, 'data');
+        $response->assertJsonPath('meta.total', 20);
+
+        $second = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/professionals?page=2');
+        $second->assertJsonCount(5, 'data');
+    }
+
+    public function test_can_search_by_name(): void
+    {
+        Professional::factory()->create(['name' => 'Dr. Carlos Souza']);
+        Professional::factory()->create(['name' => 'Dra. Beatriz Lima']);
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/professionals?name=carlos');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Dr. Carlos Souza');
+    }
+
+    public function test_can_search_by_specialty(): void
+    {
+        Professional::factory()->create(['name' => 'A', 'specialty' => 'Cardiologia']);
+        Professional::factory()->create(['name' => 'B', 'specialty' => 'Dermatologia']);
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/professionals?specialty=cardio');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'A');
+    }
 }

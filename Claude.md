@@ -276,7 +276,35 @@ README (pergunta de "volume 50x").
   broker referenciando dados só do banco de teste. Isso virou, sem querer,
   prova real de que retry+DLQ funcionam (headers `x-death` do RabbitMQ
   confirmando a jornada) — documentado no ADR.
-- **Fase 5 — Frontend.** Shell, auth, kanban, relatórios, tratamento de erro/UX.
+- **Fase 5 — Frontend (concluída).** Pinia (auth) + axios (interceptor de
+  token/erros) + vue-router (guarda de rota). Shell responsivo (sidebar
+  colapsável no mobile). CRUD de pacientes/profissionais (com disponibilidade)
+  — não estava explícito no roadmap da fase, mas é pré-requisito de dado pra
+  agendar pelo kanban. Consultas em três visões (kanban/lista/agenda,
+  conforme seção 10) com as transições de status. `StatusBadge` distingue
+  Cancelada de Não Compareceu por cor **e** ícone **e** rótulo, não só cor
+  (requisito explícito de UX). Relatórios: os 4 endpoints decididos na Fase 1
+  não tinham sido implementados na Fase 3 — feitos agora com TDD (backend,
+  109 testes) antes da tela consumir. Dois bugs reais achados na revisão (não
+  só "buildou, então tá bom"): (1) `end_at` sendo calculado via
+  `toISOString()` (UTC) enquanto `start_at` ia como string local — desalinhava
+  os dois em qualquer fuso ≠ UTC; (2) filtro `to` da listagem de consultas
+  virava meia-noite em vez de fim do dia, esvaziando a agenda de qualquer dia
+  específico — pego com teste de regressão. **Limitação assumida:** não
+  verifiquei em navegador real (sem ferramenta de automação de browser
+  disponível nesta sessão) — validado via build de produção (`vite build`,
+  pega erro de import/sintaxe em toda a árvore), smoke test real contra a API
+  rodando, e revisão de código.
+- **Pós-Fase 5 (a pedido):** drag-and-drop no kanban (vuedraggable — solta
+  card muda de coluna, valida a transição no cliente antes de chamar a API,
+  reverte visualmente se inválida), modal de detalhe ao clicar num card/linha
+  (mostra a trilha de auditoria completa — `AppointmentResource` ganhou
+  `status_history`, carregado só no `show()`, não na listagem, pra não pagar
+  N+1 à toa). Paginação + busca por todos os campos relevantes nas 3 telas de
+  listagem (pacientes: nome/CPF/telefone/e-mail/data de nascimento;
+  profissionais: nome/especialidade; consultas: paciente/profissional/
+  status/período). Relatórios ganharam filtro por profissional e paciente.
+  126 testes de backend passando.
 - **Fase 6 — Testes + docs + vídeo.** Cobertura crítica, 3 ADRs, README completo,
   AI_USAGE, GIF/vídeo.
 

@@ -56,6 +56,16 @@ class AppointmentResource extends JsonResource
                 'id' => $this->createdBy->id,
                 'name' => $this->createdBy->name,
             ],
+            // Só presente quando explicitamente carregado (show) — a
+            // listagem não carrega, pra não pagar N+1/payload à toa.
+            'status_history' => $this->whenLoaded('statusHistories', fn () => $this->statusHistories->map(fn ($h) => [
+                'id' => $h->id,
+                'from_status' => $h->from_status ? ['value' => $h->from_status->value, 'label' => $h->from_status->label()] : null,
+                'to_status' => ['value' => $h->to_status->value, 'label' => $h->to_status->label()],
+                'reason' => $h->reason,
+                'changed_by' => ['id' => $h->changedBy->id, 'name' => $h->changedBy->name],
+                'changed_at' => $h->changed_at->toIso8601String(),
+            ])),
         ];
     }
 }

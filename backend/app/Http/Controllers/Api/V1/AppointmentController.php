@@ -29,9 +29,12 @@ class AppointmentController extends Controller
         summary: 'Lista consultas (filtrável por status, profissional, paciente e período)',
         security: [['bearerAuth' => []]],
         parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'status', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'professional_id', in: 'query', schema: new OA\Schema(type: 'integer')),
             new OA\Parameter(name: 'patient_id', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'patient_name', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'professional_name', in: 'query', schema: new OA\Schema(type: 'string')),
             new OA\Parameter(name: 'from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter(name: 'to', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
         ],
@@ -46,8 +49,14 @@ class AppointmentController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
             ->when($request->filled('professional_id'), fn ($q) => $q->where('professional_id', $request->integer('professional_id')))
             ->when($request->filled('patient_id'), fn ($q) => $q->where('patient_id', $request->integer('patient_id')))
+            ->when($request->filled('patient_name'), function ($q) use ($request) {
+                $q->whereHas('patient', fn ($p) => $p->where('name', 'like', '%'.$request->string('patient_name').'%'));
+            })
+            ->when($request->filled('professional_name'), function ($q) use ($request) {
+                $q->whereHas('professional', fn ($p) => $p->where('name', 'like', '%'.$request->string('professional_name').'%'));
+            })
             ->when($request->filled('from'), fn ($q) => $q->where('start_at', '>=', $request->date('from')))
-            ->when($request->filled('to'), fn ($q) => $q->where('start_at', '<=', $request->date('to')))
+            ->when($request->filled('to'), fn ($q) => $q->where('start_at', '<=', $request->date('to')->endOfDay()))
             ->orderBy('start_at')
             ->paginate(20);
 
@@ -102,7 +111,9 @@ class AppointmentController extends Controller
     {
         $this->authorize('view', $appointment);
 
-        return new AppointmentResource($appointment->load(self::WITH));
+        return new AppointmentResource(
+            $appointment->load([...self::WITH, 'statusHistories' => fn ($q) => $q->orderBy('changed_at'), 'statusHistories.changedBy'])
+        );
     }
 
     #[OA\Post(

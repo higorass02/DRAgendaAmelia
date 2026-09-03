@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\ProfessionalController;
+use App\Http\Controllers\Api\V1\ReportController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('appointments/{appointment}/no-show', [AppointmentController::class, 'noShow']);
     Route::post('appointments/{appointment}/cancel', [AppointmentController::class, 'cancel']);
     Route::post('appointments/{appointment}/reschedule', [AppointmentController::class, 'reschedule']);
+
+    Route::get('reports', [ReportController::class, 'index']);
 
     // Throttle mais brando (CLAUDE.md, seção 7): criar/confirmar consulta são
     // escritas com efeito colateral direto na agenda do profissional.

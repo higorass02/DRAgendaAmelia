@@ -7,6 +7,7 @@ use App\Http\Requests\Professionals\UpdateProfessionalRequest;
 use App\Http\Resources\ProfessionalResource;
 use App\Models\Professional;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
@@ -16,17 +17,27 @@ class ProfessionalController extends Controller
     #[OA\Get(
         path: '/professionals',
         tags: ['Professionals'],
-        summary: 'Lista profissionais',
+        summary: 'Lista profissionais (paginada, filtrável por nome e especialidade)',
         security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'name', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'specialty', in: 'query', schema: new OA\Schema(type: 'string')),
+        ],
         responses: [new OA\Response(response: 200, description: 'Lista paginada de profissionais')]
     )]
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
         $this->authorize('viewAny', Professional::class);
 
-        return ProfessionalResource::collection(
-            Professional::with('availabilities')->orderBy('name')->paginate(15)
-        );
+        $professionals = Professional::query()
+            ->with('availabilities')
+            ->when($request->filled('name'), fn ($q) => $q->where('name', 'like', '%'.$request->string('name').'%'))
+            ->when($request->filled('specialty'), fn ($q) => $q->where('specialty', 'like', '%'.$request->string('specialty').'%'))
+            ->orderBy('name')
+            ->paginate(15);
+
+        return ProfessionalResource::collection($professionals);
     }
 
     #[OA\Post(

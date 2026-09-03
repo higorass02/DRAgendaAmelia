@@ -130,4 +130,80 @@ class PatientCrudTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_list_is_paginated(): void
+    {
+        Patient::factory()->count(20)->create();
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients');
+
+        $response->assertOk();
+        $response->assertJsonCount(15, 'data');
+        $response->assertJsonPath('meta.total', 20);
+        $response->assertJsonPath('meta.last_page', 2);
+
+        $second = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients?page=2');
+        $second->assertJsonCount(5, 'data');
+    }
+
+    public function test_can_search_by_name(): void
+    {
+        Patient::factory()->create(['name' => 'Maria da Silva']);
+        Patient::factory()->create(['name' => 'João Pereira']);
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients?name=maria');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'Maria da Silva');
+    }
+
+    public function test_can_search_by_cpf(): void
+    {
+        Patient::factory()->create(['cpf' => '11144477735', 'name' => 'A']);
+        Patient::factory()->create(['cpf' => '22255588846', 'name' => 'B']);
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients?cpf=111444');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'A');
+    }
+
+    public function test_can_search_by_phone(): void
+    {
+        Patient::factory()->create(['phone' => '11999998888', 'name' => 'A']);
+        Patient::factory()->create(['phone' => '21988887777', 'name' => 'B']);
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients?phone=11999');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'A');
+    }
+
+    public function test_can_search_by_email(): void
+    {
+        Patient::factory()->create(['email' => 'maria@example.com', 'name' => 'A']);
+        Patient::factory()->create(['email' => 'joao@example.com', 'name' => 'B']);
+
+        $response = $this->withHeaders($this->staffHeaders())->getJson('/api/v1/patients?email=maria@');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'A');
+    }
+
+    public function test_can_search_by_birth_date_range(): void
+    {
+        Patient::factory()->create(['birth_date' => '1990-05-10', 'name' => 'A']);
+        Patient::factory()->create(['birth_date' => '2000-01-01', 'name' => 'B']);
+
+        $response = $this->withHeaders($this->staffHeaders())
+            ->getJson('/api/v1/patients?birth_date_from=1985-01-01&birth_date_to=1995-01-01');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'A');
+    }
 }

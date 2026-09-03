@@ -16,8 +16,17 @@ class PatientController extends Controller
     #[OA\Get(
         path: '/patients',
         tags: ['Patients'],
-        summary: 'Lista pacientes',
+        summary: 'Lista pacientes (paginada, filtrável por nome, CPF, telefone, e-mail e data de nascimento)',
         security: [['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(name: 'page', in: 'query', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'name', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'cpf', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'phone', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'email', in: 'query', schema: new OA\Schema(type: 'string')),
+            new OA\Parameter(name: 'birth_date_from', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'birth_date_to', in: 'query', schema: new OA\Schema(type: 'string', format: 'date')),
+        ],
         responses: [
             new OA\Response(response: 200, description: 'Lista paginada de pacientes'),
             new OA\Response(response: 401, description: 'Não autenticado'),
@@ -28,7 +37,20 @@ class PatientController extends Controller
     {
         $this->authorize('viewAny', Patient::class);
 
-        return PatientResource::collection(Patient::orderBy('name')->paginate(15));
+        $patients = Patient::query()
+            ->when($request->filled('name'), fn ($q) => $q->where('name', 'like', '%'.$request->string('name').'%'))
+            ->when($request->filled('cpf'), function ($q) use ($request) {
+                $cpf = preg_replace('/\D/', '', (string) $request->string('cpf'));
+                $q->where('cpf', 'like', "%{$cpf}%");
+            })
+            ->when($request->filled('phone'), fn ($q) => $q->where('phone', 'like', '%'.$request->string('phone').'%'))
+            ->when($request->filled('email'), fn ($q) => $q->where('email', 'like', '%'.$request->string('email').'%'))
+            ->when($request->filled('birth_date_from'), fn ($q) => $q->whereDate('birth_date', '>=', $request->date('birth_date_from')))
+            ->when($request->filled('birth_date_to'), fn ($q) => $q->whereDate('birth_date', '<=', $request->date('birth_date_to')))
+            ->orderBy('name')
+            ->paginate(15);
+
+        return PatientResource::collection($patients);
     }
 
     #[OA\Post(

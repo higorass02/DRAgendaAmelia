@@ -58,6 +58,22 @@ repositório, com acesso a shell, Docker e ao sistema de arquivos local.
   confirmando a jornada completa. Documentado no ADR 0001. Fila purgada
   depois de capturar a evidência — não ficou lixo de debug no ambiente.
 
+- **Fase 5 — Frontend:** revelou uma lacuna da Fase 3 — os 4 relatórios
+  decididos na Fase 1 nunca tinham sido implementados no backend (a
+  Fase 3 cobriu auth/patients/professionals/appointments, mas não
+  relatórios). Implementados agora, com TDD, antes de construir a tela que
+  os consome. Na revisão do código do frontend (sem ferramenta de browser
+  disponível nesta sessão para testar visualmente), encontrei dois bugs reais
+  por leitura cuidadosa, não só "buildou, então tá bom": cálculo de `end_at`
+  via `toISOString()` (UTC) desalinhado do `start_at` (string local) em
+  qualquer fuso diferente de UTC; e um filtro de data (`to`) que virava meia-
+  noite em vez de fim do dia, esvaziando a visão de agenda de qualquer dia
+  específico — este corrigido com teste de regressão no backend. Verificação
+  desta fase ficou limitada a: build de produção do frontend (pega erros de
+  import/sintaxe em toda a árvore de componentes), smoke test real contra a
+  API rodando (login, filtros, relatórios com dados reais), e revisão de
+  código — não houve teste visual em navegador real.
+
 *(Seções seguintes serão preenchidas conforme o projeto avança pelas fases.)*
 
 ## O que foi revisado manualmente
