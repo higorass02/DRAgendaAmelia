@@ -29,6 +29,13 @@ jobs:
         run: |
           cp .env.example .env
           cp backend/.env.example backend/.env
+          # WWWUSER/WWWGROUP definem o dono do "appuser" dentro da imagem —
+          # em dev isso casa com o usuário do host (bind mount). No runner do
+          # GitHub Actions o checkout pertence ao usuário "runner" (não UID
+          # 1000), então sem isso o container não consegue nem criar vendor/
+          # no volume montado ("does not exist and could not be created").
+          sed -i "s/^WWWUSER=.*/WWWUSER=$(id -u)/" .env
+          sed -i "s/^WWWGROUP=.*/WWWGROUP=$(id -g)/" .env
 
       - name: Build and start the API container (brings up MySQL/RabbitMQ as dependencies)
         run: docker compose up -d --build api
